@@ -15,21 +15,28 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
+
+
 //use app module
 app.use(morgan('dev'))
 app.use(cors(corsOptions));
 app.use(authenticateToken); // header wajib untuk akses ke db biar gak di abuse
 
+//logger mode pastiin development kalau lagi develop
+if (process.env.NODE_ENV === 'development') {
+    app.use(morgan('dev'));
+} else {
+    app.use(morgan('combined'));
+}
 //jangan di ganti buat arah ke .env
 const port = process.env.PORT ;
-// const timeout = process.env.SERVER_TIMEOUT ;
-
 
 
 
 app.get('/', (req, res) => {
     res.json({
-        tes: "titit kuda"
+        tes: "titit kuda",
+        tes2: "22"
     })
 })
 

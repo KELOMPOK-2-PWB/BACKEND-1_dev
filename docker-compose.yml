@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  backend:
+    container_name: be-dev
+    build: .
+    command: npm run dev #development mode only
+    ports:
+      - "3454:3454"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    env_file:
+      - ./.env
