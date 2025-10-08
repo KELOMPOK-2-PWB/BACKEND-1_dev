@@ -8,7 +8,10 @@ const app = express();
 const morgan = require('morgan');
 const cors = require('cors');
 const authenticateToken = require('./middleware/authBackend');
+const connectDB = require('./config/db');
 
+//db connection
+connectDB();
 
 const corsOptions = {
   origin: process.env.FRONTEND_URL, // ini url dari frontend
