@@ -9,6 +9,8 @@ const morgan = require('morgan');
 const cors = require('cors');
 const authenticateToken = require('./middleware/authBackend');
 const connectDB = require('./config/db');
+const authRoutes = require('./routes/authRoutes');
+
 
 //db connection
 connectDB();
@@ -21,8 +23,8 @@ const corsOptions = {
 
 
 //use app module
-app.use(morgan('dev'))
 app.use(cors(corsOptions));
+app.use(express.json());
 app.use(authenticateToken); // header wajib untuk akses ke db biar gak di abuse
 
 //logger mode pastiin development kalau lagi develop
@@ -36,12 +38,15 @@ const port = process.env.PORT ;
 
 
 
-app.get('/', (req, res) => {
-    res.json({
-        tes: "titit kuda",
-        tes2: "22"
-    })
-})
+// app.get('/', (req, res) => {
+//     res.json({
+//         tes: "tes dev",
+//     })
+// })
+
+
+// semua route di routes bakal ada di bawah sini
+app.use('/api/auth', authRoutes);
 
 const server = app.listen(port, () => {
     console.log(`server backend running di port ${port}`)
