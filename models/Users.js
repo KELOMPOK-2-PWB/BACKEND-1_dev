@@ -1,7 +1,7 @@
 // File: models/User.js
 
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs'); // Kita akan pakai bcryptjs untuk hash password
+const bcrypt = require('bcryptjs');
 
 const UserSchema = new mongoose.Schema({
   name: {
@@ -14,6 +14,12 @@ const UserSchema = new mongoose.Schema({
     unique: true,
     trim: true,
   },
+  isEmailVerified: {
+    type: Boolean,
+    default: false,
+  },
+  otp: String,
+  otpExpires: Date,
   email: {
     type: String,
     required: [true, 'Email tidak boleh kosong'],

@@ -23,6 +23,7 @@ const corsOptions = {
 
 
 //use app module
+app.use(morgan('dev')) //kalau log gak jalan ini aktifin aja, kalau double baru di matiin di mac gua -dana gak mau jalan log nya
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(authenticateToken); // header wajib untuk akses ke db biar gak di abuse
