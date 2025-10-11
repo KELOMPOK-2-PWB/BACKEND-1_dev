@@ -9,7 +9,10 @@ const morgan = require('morgan');
 const cors = require('cors');
 const authenticateToken = require('./middleware/authBackend');
 const connectDB = require('./config/db');
+
+
 const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 
 //db connection
@@ -48,6 +51,7 @@ const port = process.env.PORT ;
 
 // semua route di routes bakal ada di bawah sini
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 const server = app.listen(port, () => {
     console.log(`server backend running di port ${port}`)
