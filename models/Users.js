@@ -34,7 +34,7 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'admin', 'superadmin', 'seller'], // role yang ada
+    enum: ['user', 'admin', 'superadmin', 'seller'],
     default: 'user',
   },
   avatar: {
@@ -49,6 +49,16 @@ const UserSchema = new mongoose.Schema({
     default: false,
   },
   permissions: [String], 
+
+  address: {
+    type: String,
+    default: '',
+  },
+
+  rating: {
+    type: Number,
+    default: 0,
+  },
 
   sellerInfo: {
     store: String,
