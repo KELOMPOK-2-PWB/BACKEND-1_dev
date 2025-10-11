@@ -34,7 +34,7 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'admin', 'superadmin', 'seller'],
+    enum: ['user', 'admin', 'superadmin', 'seller'], //role yang tersedia 
     default: 'user',
   },
   avatar: {
@@ -53,9 +53,13 @@ const UserSchema = new mongoose.Schema({
   address: {
     street: String,
     city: String,
-    state: String,
-    zip: String,
-    country: String,
+    province: String,
+    postalCode: String,
+  },
+
+  isPrimary: {
+    type: Boolean,
+    default: false,
   },
 
   rating: {
