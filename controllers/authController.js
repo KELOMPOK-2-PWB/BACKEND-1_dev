@@ -33,7 +33,7 @@ exports.register = async (req, res) => {
             );
         if (!phoneNumber) errors.push(
             {
-                field: 'password', message: 'phoneNumber tidak boleh kosong'
+                field: 'phoneNumber', message: 'phoneNumber tidak boleh kosong'
             }
         );
         if (errors.length > 0) {
@@ -118,6 +118,7 @@ exports.login = async (req, res) => {
                 id: user._id,
                 username: user.username,
                 email: user.email,
+                phoneNumber: user.phoneNumber,
                 role: user.role,
             }
         });
@@ -126,6 +127,80 @@ exports.login = async (req, res) => {
         res.status(500).json({ message: 'Terjadi kesalahan pada server', error: error.message });
     }
 };
+
+
+
+
+
+// @desc    register seller
+// @route   POST /api/auth/register-seller
+
+exports.registerSeller = async (req, res) => {
+    try {
+        const { email, password, phoneNumber, username } = req.body;
+
+        const errors = [];
+        if (!email) errors.push({ field: 'email', message: 'Email tidak boleh kosong' });
+        if (!username) errors.push({ field: 'username', message: 'Username tidak boleh kosong' });
+        if (!password) errors.push({ field: 'password', message: 'Password tidak boleh kosong' });
+        if (!password) errors.push({ field: 'phoneNumber', message: 'phoneNumber tidak boleh kosong' });
+        if (errors.length > 0) {
+            return res.status(400).json({ errors });
+        }
+
+        const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+        if (existingUser) {
+            return res.status(400).json({ message: 'Email atau username sudah terdaftar' });
+        }
+        const user = new User({
+            name: username,
+            email,
+            password,
+            phoneNumber,
+            username,
+            role: 'seller', // Ini buat resgister kalau dia itu saller
+        });
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        user.otp = await bcrypt.hash(otp, 10);
+        user.otpExpires = Date.now() + 10 * 60 * 1000;
+
+        try {
+            await resend.emails.send({
+                from: 'noreply@ashura.web.id',
+                to: user.email,
+                subject: 'Kode Verifikasi Pendaftaran Anda menjadi Seller',
+                html: `<p>Halo ${user.username},</p>
+               <p>Gunakan kode OTP ini untuk memverifikasi pendaftaran toko Anda. Kode ini berlaku selama 10 menit.</p>
+               <h2><strong>${otp}</strong></h2>`
+            });
+
+            await user.save();
+
+            res.status(201).json({
+                message: 'Registrasi seller berhasil. Kode OTP telah dikirim ke email Anda.',
+            });
+
+        } catch (emailError) {
+            console.error("Email sending error:", emailError);
+            return res.status(500).json({ message: 'Gagal mengirim email verifikasi. Silakan coba lagi.' });
+        }
+
+    } catch (error) {
+        res.status(500).json({ message: 'Terjadi kesalahan pada server', error: error.message });
+    }
+};
+
+
+
+
+
+
+
+
+
+// @desc    verify otp
+// @route   POST /api/auth/verify-otp
 
 exports.verifyOtp = async (req, res) => {
     try {
@@ -156,3 +231,4 @@ exports.verifyOtp = async (req, res) => {
         res.status(500).json({ message: 'Terjadi kesalahan pada server', error: error.message });
     }
 };
+
