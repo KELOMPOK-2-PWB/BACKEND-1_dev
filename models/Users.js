@@ -37,7 +37,7 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'admin', 'superadmin', 'seller'], // role yang ada
+    enum: ['user', 'admin', 'superadmin', 'seller'], //role yang tersedia 
     default: 'user',
   },
   avatar: {
@@ -58,6 +58,27 @@ const UserSchema = new mongoose.Schema({
     default: false,
   },
   permissions: [String], 
+
+  address: {
+  street: String,
+  city: {type: String, index: true},
+  province: String,
+  postalCode: String,
+  country: {
+    type: String,
+    default: 'Indonesia'
+  },
+  isDefaultAddress: {
+    type: Boolean,
+    default: false,
+    index: true
+  }
+},
+
+  rating: {
+    type: Number,
+    default: 0,
+  },
 
   sellerInfo: {
     store: String,
