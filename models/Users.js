@@ -51,16 +51,20 @@ const UserSchema = new mongoose.Schema({
   permissions: [String], 
 
   address: {
-    street: String,
-    city: String,
-    province: String,
-    postalCode: String,
+  street: String,
+  city: {type: String, index: true},
+  province: String,
+  postalCode: String,
+  country: {
+    type: String,
+    default: 'Indonesia'
   },
-
   isDefaultAddress: {
     type: Boolean,
     default: false,
-  },
+    index: true
+  }
+},
 
   rating: {
     type: Number,
