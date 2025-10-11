@@ -57,7 +57,7 @@ const UserSchema = new mongoose.Schema({
     postalCode: String,
   },
 
-  isPrimary: {
+  isDefaultAddress: {
     type: Boolean,
     default: false,
   },
