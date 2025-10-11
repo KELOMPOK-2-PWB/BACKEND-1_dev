@@ -20,6 +20,7 @@ const UserSchema = new mongoose.Schema({
   },
   otp: String,
   otpExpires: Date,
+    unverifiedEmail: String,
   email: {
     type: String,
     required: [true, 'Email tidak boleh kosong'],
@@ -27,6 +28,8 @@ const UserSchema = new mongoose.Schema({
     lowercase: true,
     trim: true,
   },
+    createdAt: { type: Date },
+    updatedAt: { type: Date },
   password: {
     type: String,
     required: [true, 'Password tidak boleh kosong'],
@@ -41,6 +44,12 @@ const UserSchema = new mongoose.Schema({
     type: String,
     default: 'default-avatar.png',
   },
+    address: {
+        street: String,
+        city: String,
+        province: String,
+        postalCode: String,
+    },
   phoneNumber: { 
     type: String,
   },
