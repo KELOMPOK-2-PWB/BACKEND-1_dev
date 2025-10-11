@@ -51,8 +51,11 @@ const UserSchema = new mongoose.Schema({
   permissions: [String], 
 
   address: {
-    type: String,
-    default: '',
+    street: String,
+    city: String,
+    state: String,
+    zip: String,
+    country: String,
   },
 
   rating: {
