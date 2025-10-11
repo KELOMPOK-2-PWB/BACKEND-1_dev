@@ -42,7 +42,7 @@ const UserSchema = new mongoose.Schema({
   },
   avatar: {
     type: String,
-    default: 'default-avatar.png',
+    default: 'https://uploader.danafxc.my.id/images/20ccd932-c5e6-427f-bf44-70e2eadb2e6e.jpg',
   },
     address: {
         street: String,
@@ -57,28 +57,25 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  permissions: [String], 
+  permissions: [String],
 
-  address: {
-  street: String,
-  city: {type: String, index: true},
-  province: String,
-  postalCode: String,
-  country: {
-    type: String,
-    default: 'Indonesia'
-  },
-  isDefaultAddress: {
-    type: Boolean,
-    default: false,
-    index: true
-  }
-},
-
-  rating: {
-    type: Number,
-    default: 0,
-  },
+    address: [{
+        street: String,
+        city: {
+            type: String,
+            index: true
+        },
+        province: String,
+        postalCode: String,
+        country: {
+            type: String,
+            default: 'Indonesia'
+        },
+        isDefaultAddress: {
+            type: Boolean,
+            default: false,
+        }
+    }],
 
   sellerInfo: {
     store: String,
@@ -100,15 +97,27 @@ const UserSchema = new mongoose.Schema({
 });
 
 UserSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
+    if (this.isModified('password')) {
+        try {
+            const salt = await bcrypt.genSalt(10);
+            this.password = await bcrypt.hash(this.password, salt);
+        } catch (err) {
+            return next(err);
+        }
+    }
+    // alamat kalau udah ada yang true 1 maka paksa semua nya jadi false default address
+    if (this.isModified('address')) {
+        const defaultIndex = this.address.findIndex(addr => addr.isDefaultAddress === true);
+        if (defaultIndex > -1) {
+            this.address.forEach((addr, index) => {
+                if (index !== defaultIndex) {
+                    addr.isDefaultAddress = false;
+                }
+            });
+        }
+    }
 
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
     next();
-  } catch (err) {
-    next(err);
-  }
 });
 
 module.exports = mongoose.model('User', UserSchema);
