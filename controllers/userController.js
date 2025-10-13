@@ -84,12 +84,23 @@ exports.requestEmailUpdate = async (req, res) => {
             return res.status(404).json({ message: "User tidak ditemukan."});
         }
 
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        // INI COOLDOWN USERS SEND OTP BIAR GAK DI BLOCK NJIR, di env di atur nya
+        const cooldownSeconds = parseInt(process.env.OTP_COOLDOWN_SECONDS, 10);
+        if (user.otpRequestTimestamp) {
+            // Cek apakah user telah meminta OTP dalam cooldown
+            const timeElapsed = (Date.now() - user.otpRequestTimestamp.getTime()) / 1000;
+            if (timeElapsed < cooldownSeconds) {
+                const timeLeft = Math.ceil(cooldownSeconds - timeElapsed);
+                return res.status(429).json({ message: `Anda terlalu sering meminta OTP. Silakan coba lagi dalam ${timeLeft} detik.` });
+            }
+        }
 
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
         // Set semua data baru di objek user
         user.unverifiedEmail = newEmail;
         user.otp = await bcrypt.hash(otp, 10);
         user.otpExpires = Date.now() + 10 * 60 * 1000;
+        user.otpRequestTimestamp = Date.now();
 
         await resend.emails.send({
             from: 'noreply@ashura.web.id',
