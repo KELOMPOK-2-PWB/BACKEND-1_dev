@@ -50,10 +50,24 @@ exports.register = async (req, res) => {
             phoneNumber,
             username,
         });
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
+        // INI COOLDOWN USERS SEND OTP BIAR GAK DI BLOCK NJIR, di env di atur nya
+        const cooldownSeconds = parseInt(process.env.OTP_COOLDOWN_SECONDS, 10);
+        if (user.otpRequestTimestamp) {
+            // Cek apakah user telah meminta OTP dalam cooldown
+            const timeElapsed = (Date.now() - user.otpRequestTimestamp.getTime()) / 1000;
+            if (timeElapsed < cooldownSeconds) {
+                const timeLeft = Math.ceil(cooldownSeconds - timeElapsed);
+                return res.status(429).json({ message: `Anda terlalu sering meminta OTP. Silakan coba lagi dalam ${timeLeft} detik.` });
+            }
+        }
+
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
         user.otp = await bcrypt.hash(otp, 10);
         user.otpExpires = Date.now() + 10 * 60 * 1000; // OTP berlaku 10 menit
+        user.otpRequestTimestamp = Date.now();
+        
         try {
             await resend.emails.send({
                 from: 'noreply@ashura.web.id',
@@ -160,10 +174,21 @@ exports.registerSeller = async (req, res) => {
             username,
             role: 'seller', // Ini buat resgister kalau dia itu saller
         });
+        // INI COOLDOWN USERS SEND OTP BIAR GAK DI BLOCK NJIR, di env di atur nya
+        const cooldownSeconds = parseInt(process.env.OTP_COOLDOWN_SECONDS, 10);
+        if (user.otpRequestTimestamp) {
+            // Cek apakah user telah meminta OTP dalam cooldown
+            const timeElapsed = (Date.now() - user.otpRequestTimestamp.getTime()) / 1000;
+            if (timeElapsed < cooldownSeconds) {
+                const timeLeft = Math.ceil(cooldownSeconds - timeElapsed);
+                return res.status(429).json({ message: `Anda terlalu sering meminta OTP. Silakan coba lagi dalam ${timeLeft} detik.` });
+            }
+        }
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         user.otp = await bcrypt.hash(otp, 10);
         user.otpExpires = Date.now() + 10 * 60 * 1000;
+        user.otpRequestTimestamp = Date.now();
 
         try {
             await resend.emails.send({
@@ -232,3 +257,125 @@ exports.verifyOtp = async (req, res) => {
     }
 };
 
+
+// @desc    Forgot password
+// @route   POST /api/auth/forgot-password
+exports.forgotPassword = async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        return res.status(400).json({ message: 'Email tidak boleh kosong' });
+    }
+
+    try {
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(200).json({ message: 'Otp berhasil di kirim ke email anda.' });
+        }
+
+        // INI COOLDOWN USERS SEND OTP BIAR GAK DI BLOCK NJIR, di env di atur nya
+        const cooldownSeconds = parseInt(process.env.OTP_COOLDOWN_SECONDS, 10);
+        if (user.otpRequestTimestamp) {
+            // Cek apakah user telah meminta OTP dalam cooldown
+            const timeElapsed = (Date.now() - user.otpRequestTimestamp.getTime()) / 1000;
+            if (timeElapsed < cooldownSeconds) {
+                const timeLeft = Math.ceil(cooldownSeconds - timeElapsed);
+                return res.status(429).json({ message: `Anda terlalu sering meminta OTP. Silakan coba lagi dalam ${timeLeft} detik.` });
+            }
+        }
+
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        user.otp = await bcrypt.hash(otp, 10);
+        user.otpExpires = Date.now() + 10 * 60 * 1000;
+        user.otpRequestTimestamp = Date.now(); // timestep buat cek user request minta otp
+
+        await resend.emails.send({
+            from: 'noreply@ashura.web.id',
+            to: user.email,
+            subject: 'Kode Reset Password Anda',
+            html: `<h2>Gunakan kode OTP ini untuk mereset password Anda: ${otp}</h2>`
+        });
+
+        await user.save();
+
+        res.status(200).json({ message: 'Otp berhasil di kirim ke email anda.' });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+    }
+};
+
+// @desc    Memverifikasi OTP untuk reset password
+// @route   POST /api/auth/verify-reset-otp-password
+exports.verifyResetOtp = async (req, res) => {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+        return res.status(400).json({ message: 'Email dan OTP tidak boleh kosong' });
+    }
+
+    try {
+        const user = await User.findOne({ email, otpExpires: { $gt: Date.now() } });
+
+        if (!user) {
+            return res.status(400).json({ message: 'OTP tidak valid atau sudah kedaluwarsa.' });
+        }
+
+        const isMatch = await bcrypt.compare(otp, user.otp);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'OTP salah.' });
+        }
+
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+        user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // Tiket berlaku 10 menit
+
+        // Hapus OTP setelah digunakan
+        user.otp = undefined;
+        user.otpExpires = undefined;
+
+        await user.save();
+
+        // Kirim token reset ke json biar fe bisa pakai
+        res.status(200).json({ resetToken });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+    }
+};
+
+// @desc    Mereset password dengan token verifikasi
+// @route   POST /api/auth/reset-password
+exports.resetPassword = async (req, res) => {
+    const { email, newPassword, token } = req.body;
+    if (!email || !newPassword || !token) {
+        return res.status(400).json({ message: 'Email, password baru, dan token wajib diisi' });
+    }
+
+    try {
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+        const user = await User.findOne({
+            email,
+            resetPasswordToken: hashedToken,
+            resetPasswordExpires: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return res.status(400).json({ message: 'Token reset tidak valid atau sudah kedaluwarsa.' });
+        }
+
+        user.password = newPassword;
+
+        // Hapus token reset password setelah digunakan
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+
+        await user.save();
+
+        res.status(200).json({ message: 'Password berhasil direset. Silakan login dengan password baru Anda.' });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+    }
+};

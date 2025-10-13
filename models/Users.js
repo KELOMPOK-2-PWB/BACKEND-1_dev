@@ -19,8 +19,11 @@ const UserSchema = new mongoose.Schema({
     default: false,
   },
   otp: String,
-  otpExpires: Date,
+    otpExpires: Date,
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
     unverifiedEmail: String,
+    otpRequestTimestamp: Date,
   email: {
     type: String,
     required: [true, 'Email tidak boleh kosong'],
@@ -30,6 +33,7 @@ const UserSchema = new mongoose.Schema({
   },
     createdAt: { type: Date },
     updatedAt: { type: Date },
+
   password: {
     type: String,
     required: [true, 'Password tidak boleh kosong'],
