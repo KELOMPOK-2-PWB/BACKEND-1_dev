@@ -1,24 +1,21 @@
-// ini nanti aja gua masih mikir cara seller ini biat aman dari users
-
 const express = require('express');
 const router = express.Router();
+const {
+  createProduct,
+  getSellerProducts,
+  updateProduct,
+  deleteProduct
+} = require('../controllers/productController');
+
 const { protect, authorize } = require('../middleware/protectMiddleware');
+const authBackend = require('../middleware/authBackend');
 
-const { updateSellerProfile, verifySellerStatus } = require('../controllers/sellerController');
+// Semua route product lewat verifikasi backend + JWT seller
+router.use(authBackend);
 
-router.put(
-    '/profile',
-    protect,
-    authorize('seller', 'admin', 'superadmin'),
-    updateSellerProfile
-);
-
-router.put(
-    '/:id/verify-status',
-    protect,
-    authorize('admin', 'superadmin'),
-    verifySellerStatus
-);
-
+router.post('/', protect, authorize('seller'), createProduct);
+router.get('/', protect, authorize('seller'), getSellerProducts);
+router.put('/:id', protect, authorize('seller'), updateProduct);
+router.delete('/:id', protect, authorize('seller'), deleteProduct);
 
 module.exports = router;
