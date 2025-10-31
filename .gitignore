@@ -3,3 +3,4 @@
 package-lock.json
 minikube-linux-amd64
 .idea
+./vscode

@@ -48,16 +48,10 @@ const UserSchema = new mongoose.Schema({
     type: String,
     default: 'https://uploader.danafxc.my.id/images/20ccd932-c5e6-427f-bf44-70e2eadb2e6e.jpg',
   },
-    address: {
-        street: String,
-        city: String,
-        province: String,
-        postalCode: String,
-    },
   phoneNumber: { 
     type: String,
   },
-  isVerified: { 
+  isVerifiedAccount: {
     type: Boolean,
     default: false,
   },
@@ -78,7 +72,8 @@ const UserSchema = new mongoose.Schema({
         isDefaultAddress: {
             type: Boolean,
             default: false,
-        }
+        },
+        addressNotes: String
     }],
 
   sellerInfo: {
