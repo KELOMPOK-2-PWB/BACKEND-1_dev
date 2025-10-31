@@ -45,7 +45,20 @@ const ProductSchema = new mongoose.Schema({
     average: { type: Number, default: 0 },
     count: { type: Number, default: 0 },
   },
-  images: [String] 
+  images: [String],
+
+    isDropItem: {
+        type: Boolean,
+        default: false,
+        index: true // ini buat cek apakah barang itu di drop tiem atau enggak
+    },
+    dropStart: { // Kapan produk mulai bisa dibeli/ di buka lah
+        type: Date,
+    },
+    dropEnd: { // Kapan produk sudah tidak bisa dibeli
+        type: Date,
+    }
+
 }, {
   timestamps: true
 });

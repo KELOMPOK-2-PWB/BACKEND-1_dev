@@ -251,6 +251,10 @@ exports.getAddress = async (req, res) => {
     }
 };
 
+
+// @desc PostAddress
+// @route Post /api/users/address
+
 exports.addAddress = async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
@@ -261,6 +265,7 @@ exports.addAddress = async (req, res) => {
             city: req.body.city,
             province: req.body.province,
             postalCode: req.body.postalCode,
+            addressNotes: req.body.addressNotes,
             isDefaultAddress: req.body.isDefaultAddress || false,
         };
         user.address.push(newAddress);
@@ -287,6 +292,7 @@ exports.updateAddress = async (req, res) => {
         address.city = req.body.city || address.city;
         address.province = req.body.province || address.province;
         address.postalCode = req.body.postalCode || address.postalCode;
+        address.addressNotes = req.body.addressNotes || address.addressNotes;
         if (typeof req.body.isDefaultAddress === 'boolean') {
             address.isDefaultAddress = req.body.isDefaultAddress;
         }
