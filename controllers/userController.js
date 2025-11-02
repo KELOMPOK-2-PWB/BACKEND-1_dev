@@ -110,7 +110,7 @@ exports.requestEmailUpdate = async (req, res) => {
             html: `<div style="font-family: Arial, sans-serif; background-color: #f7f7f7; padding: 20px;">
     <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0px 4px 10px rgba(0,0,0,0.1);">
       
-      <div style="background: #1a73e8; padding: 20px; text-align: center;">
+      <div style="background:  #0D0D0D; padding: 20px; text-align: center;">
         <img src="https://uploader.danafxc.my.id/images/cd25b0b1-75fb-48de-bc6e-07525ad8cdc0.png" alt="Logo Ashura" style="width: 120px; margin-bottom: 5px;">
         <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Verifikasi Email</h1>
       </div>
@@ -123,7 +123,7 @@ exports.requestEmailUpdate = async (req, res) => {
           Silakan gunakan kode OTP berikut untuk memverifikasi perubahan email Anda:
         </p>
         <div style="text-align: center; margin: 30px 0;">
-          <span style="font-size: 32px; font-weight: bold; letter-spacing: 4px; color: #1a73e8;">
+          <span style="font-size: 32px; font-weight: bold; letter-spacing: 4px; color: #e53935;">
             ${otp}
           </span>
         </div>
@@ -133,7 +133,7 @@ exports.requestEmailUpdate = async (req, res) => {
       </div>
 
       <div style="background: #f1f1f1; padding: 10px; text-align: center; color: #555555; font-size: 12px;">
-        &copy; 2025 Ashura Web ID. Semua hak dilindungi.
+        &copy; 2025 Ashura Web ID.
       </div>
 
     </div>
