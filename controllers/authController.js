@@ -73,9 +73,36 @@ exports.register = async (req, res) => {
                 from: 'noreply@ashura.web.id',
                 to: user.email,
                 subject: 'Kode Verifikasi Anda',
-                html: `<p>Halo ${user.username},</p>
-               <p>Gunakan kode OTP ini untuk memverifikasi akun Anda. Kode ini berlaku selama 10 menit.</p>
-               <h2><strong>${otp}</strong></h2>`
+                html: `<div style="font-family: Arial, sans-serif; background-color: #f4f6f8; padding: 20px;">
+    <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);">
+      
+      
+      <div style="text-align: center; padding: 30px 20px; background-color: #1a73e8;">
+        <img src="https://uploader.danafxc.my.id/images/cd25b0b1-75fb-48de-bc6e-07525ad8cdc0.png" alt="Logo Perusahaan" style="width: 120px; margin-bottom: 10px;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 26px;">Verifikasi Akun Anda</h1>
+      </div>
+
+ 
+      <div style="padding: 30px 20px; color: #333333;">
+        <p style="font-size: 16px;">Halo <strong>${user.username}</strong>,</p>
+        <p style="font-size: 16px; margin-top: -5px;">Gunakan kode OTP ini untuk memverifikasi akun Anda. Kode ini berlaku selama <strong>10 menit</strong>:</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <span style="font-size: 36px; font-weight: bold; letter-spacing: 5px; color: #1a73e8;">
+            ${otp}
+          </span>
+        </div>
+        
+        <p style="font-size: 14px; color: #666666;">Jika Anda tidak melakukan permintaan ini, abaikan email ini.</p>
+      </div>
+
+      <!-- Footer anjay baru tahu gua bisa -->
+      <div style="background-color: #f1f1f1; padding: 15px; text-align: center; color: #777777; font-size: 12px;">
+        &copy; 2025 Ashura. 
+      </div>
+
+    </div>
+  </div>`
             });
             await user.save();
 
