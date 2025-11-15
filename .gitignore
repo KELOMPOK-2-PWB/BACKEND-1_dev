@@ -4,3 +4,4 @@ package-lock.json
 minikube-linux-amd64
 .idea
 ./vscode
+.DS_Store

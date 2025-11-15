@@ -13,7 +13,8 @@ const connectDB = require('./config/db');
 
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
-const productRoutes = require('./routes/sellerRoutes');
+const sellerRoutes = require('./routes/sellerRoutes');
+const productRoutes = require('./routes/productRoutes');
 
 
 //db connection
@@ -53,6 +54,7 @@ const port = process.env.PORT ;
 // semua route di routes bakal ada di bawah sini
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/seller', sellerRoutes);
 app.use('/api/products', productRoutes);
 
 const server = app.listen(port, () => {
