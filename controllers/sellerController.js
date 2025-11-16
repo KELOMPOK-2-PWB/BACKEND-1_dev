@@ -149,3 +149,38 @@ exports.verifySellerStatus = async (req, res) => {
     });
   }
 };
+
+//get alamat seller
+ exports.getSellerAddres = async (req, res) => {
+   try {
+     const seller = await User.findById(req.user.id);
+     res.status(200).json(seller.address);
+   } catch (error) {
+     res.status(500).json({ message: "ada kesalahan di sisi server" });
+   }
+ };
+
+//tambah alamat seller
+ exports.addSellerAddress = async (req, res) => {
+   try {
+     const seller = await User.findById(req.user.id);
+
+     const newAddress = {
+       street: req.body.street || "Hrus di isi!",
+       city: req.body.city || "Hrus di isi!",
+       province: req.body.province || "Hrus di isi!",
+       postalCode: req.body.postalCode || "Hrus di isi!",
+       addressNotes: req.body.addressNotes || "Hrus di isi!",
+       isDefaultAddress: req.body.isDefaultAddress || false,
+     };
+
+     seller.address.push(newAddress);
+     await seller.save();
+
+     res.status(201).json(seller.address);
+   } catch (error) {
+     res
+       .status(500)
+       .json({ message: "Gagal menambah alamat seller", error: error.message });
+   }
+ };
