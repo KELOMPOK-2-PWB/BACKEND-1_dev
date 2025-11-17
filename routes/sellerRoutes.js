@@ -16,7 +16,7 @@ router.use(authBackend);
 router.get('/profile', protect, authorize('seller'), getSellerProfile);
 router.put("/profile", protect, authorize("seller"), updateSellerProfile);
 router.put('/change-password-seller', protect, authorize('seller'), changeSellerPassword);
-router.get('/address', protect, authorize('seller'), getSellerAddres);
+router.get('/address-seller', protect, authorize('seller'), getSellerAddres);
 router.post('/address-seller', protect, authorize('seller'), addSellerAddress);
 
 module.exports = router;

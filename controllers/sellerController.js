@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 
 
 //Get profile Users
-// Get /api/sellers/profile
+// Get /api/seller/profile
 
 exports.getSellerProfile = async (req, res) => {
     const seller = req.user;
@@ -22,7 +22,7 @@ exports.getSellerProfile = async (req, res) => {
             isVerifiedAccount: seller.isVerifiedAccount,
             sellerInfo: seller.sellerInfo,
 
-            addresses: seller.addresses,
+            address: seller.address,
             createdAt: seller.createdAt
         });
     } else {
@@ -36,7 +36,7 @@ exports.getSellerProfile = async (req, res) => {
 
 //Update profil seller
 // Cuma bisa diubah sama seller (atau admin/superadmin)
-// Put /api/sellers/profile
+// Put /api/seller/profile
 exports.updateSellerProfile = async (req, res) => {
   try {
     const seller = await User.findById(req.user.id);
@@ -73,7 +73,7 @@ exports.updateSellerProfile = async (req, res) => {
         role: seller.role,
         isVerifiedAccount: seller.isVerifiedAccount,
         sellerInfo: seller.sellerInfo,
-        addresses: seller.addresses,
+        address: seller.address,
         createdAt: seller.createdAt,
       },
     });
@@ -86,7 +86,7 @@ exports.updateSellerProfile = async (req, res) => {
 };
 
 // Ubah password seller
-// Put /api/sellers/change-password
+// Put /api/seller/change-password
 
 exports.changeSellerPassword = async (req, res) => {
   const { currentPassword, newPassword } = req.body;
@@ -151,6 +151,7 @@ exports.verifySellerStatus = async (req, res) => {
 };
 
 //get alamat seller
+//get /api/sellers/address
  exports.getSellerAddres = async (req, res) => {
    try {
      const seller = await User.findById(req.user.id);
@@ -161,16 +162,17 @@ exports.verifySellerStatus = async (req, res) => {
  };
 
 //tambah alamat seller
+//post /api/seller/address-seller
  exports.addSellerAddress = async (req, res) => {
    try {
      const seller = await User.findById(req.user.id);
 
      const newAddress = {
-       street: req.body.street || "Hrus di isi!",
-       city: req.body.city || "Hrus di isi!",
-       province: req.body.province || "Hrus di isi!",
-       postalCode: req.body.postalCode || "Hrus di isi!",
-       addressNotes: req.body.addressNotes || "Hrus di isi!",
+       street: req.body.street || "Harus di isi!",
+       city: req.body.city || "Harus di isi!",
+       province: req.body.province || "Harus di isi!",
+       postalCode: req.body.postalCode || "Harus di isi!",
+       addressNotes: req.body.addressNotes || "Harus di isi!",
        isDefaultAddress: req.body.isDefaultAddress || false,
      };
 
