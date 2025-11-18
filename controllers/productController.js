@@ -1,11 +1,50 @@
 const Product = require('../models/Product');
 
+// Helper function to format countdown time
+function formatCountdown(ms) {
+  if (!ms || ms <= 0) return "Berakhir";
+
+  const totalSeconds = Math.floor(ms / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+  let text = "";
+  if (days > 0) text += `${days} hari `;
+  if (hours > 0) text += `${hours} jam `;
+  if (minutes > 0) text += `${minutes} menit`;
+
+  return text.trim() || "1 menit";
+}
+
+
+
 //Get produk milik seller yang login
 exports.getSellerProducts = async (req, res) => {
   try {
     const sellerId = req.user._id;
     const products = await Product.find({ seller: sellerId }).sort({ createdAt: -1 });
-    res.status(200).json(products);
+
+    // Tambahkan countdown
+    const now = new Date();
+    const productsWithCountdown = products.map(p => {
+      let countdownText = null;
+      let countdownSeconds = null;
+
+      if (p.isDropItem && p.dropEnd) {
+        const remaining = new Date(p.dropEnd) - now;
+        countdownSeconds = Math.max(0, Math.floor(remaining / 1000));
+        countdownText = formatCountdown(remaining);
+      }
+
+      return {
+        ...p.toObject(),
+        countdownText,
+        countdownSeconds
+      };
+    });
+
+    res.status(200).json(productsWithCountdown); //menggantikan products saja
   } catch (error) {
     res.status(500).json({
       message: 'Gagal mengambil produk',

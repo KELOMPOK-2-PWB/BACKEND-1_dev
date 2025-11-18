@@ -65,7 +65,7 @@ exports.getAvailableProductsCustom = async (req, res) => {
             } else if (sortValue === 'belumDiDrop') {
                 const now = new Date();
                 filter.isDropItem = true;
-                filter.dropStart = { $gt: now };
+                filter.dropStart = { $gt: now };xs
                 sortOptions = { dropStart: 1 };
             } else {
                 console.log(`input FE salah ${sortValue} tidak ada`)
@@ -85,4 +85,3 @@ exports.getAvailableProductsCustom = async (req, res) => {
         res.status(500).json({ message: "Gagal mengambil data produk", error: error.message });
     }
 };
-
