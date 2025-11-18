@@ -20,8 +20,8 @@ exports.getAvailableProducts = async (req, res) => {
 //filter barang
 // /api/products-users/search?
 
-// /api/products-users/search??search=kaos
-// /api/products-users/search??category=Pakaian&sort=newest
+// /api/products-users/search?search=kaos
+// /api/products-users/search?category=Pakaian&sort=newest
 
 exports.getAvailableProductsCustom = async (req, res) => {
     try {
