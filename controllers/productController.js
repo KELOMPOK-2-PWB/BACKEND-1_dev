@@ -55,7 +55,7 @@ exports.getSellerProducts = async (req, res) => {
 
 
 //Create prorduk
-// /api/products
+// /api/post-product
 exports.createProduct = async (req, res) => {
   try {
     const sellerId = req.user._id;
