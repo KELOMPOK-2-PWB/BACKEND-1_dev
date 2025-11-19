@@ -31,9 +31,15 @@ const ProductSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  discount: { // Dari 'diskon'
+  isDiscount: { // Dari 'diskon'
+    type: Boolean,
+    default: false,
+  },
+  discount: { // Update bagian ini
     type: Number,
     default: 0,
+    min: [0, 'diskon gak boleh kurang dari 0%'],
+    max: [99, 'diskon gak boleh lebih dari 99%']
   },
   // Referensi ke user yang menjual produk ini
   seller: {
@@ -62,5 +68,14 @@ const ProductSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// middleware diskon otoamtis kalau dia 0 maka false, jika di atas 0 maka jadi true
+ProductSchema.pre('save', function(next) {
+  if (this.isModified('discount')) {
+    this.isDiscount = this.discount > 0;
+  }
+  next();
+});
+
 
 module.exports = mongoose.model('Product', ProductSchema);
