@@ -55,24 +55,56 @@ const ProductSchema = new mongoose.Schema({
 
     isDropItem: {
         type: Boolean,
-        default: false,
+        default: true,
         index: true // ini buat cek apakah barang itu di drop tiem atau enggak
     },
     dropStart: { // Kapan produk mulai bisa dibeli/ di buka lah
         type: Date,
+        required: [true, 'waktu mulai drop (dropStart) wajib diisi'],
     },
     dropEnd: { // Kapan produk sudah tidak bisa dibeli
         type: Date,
+        required: [true, 'waktu Akhir drop (dropEnd) wajib diisi'],
     }
 
 }, {
-  timestamps: true
+  timestamps: true,
+  // virtual field untuk barang
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
 // middleware diskon otoamtis kalau dia 0 maka false, jika di atas 0 maka jadi true
 ProductSchema.pre('save', function(next) {
   if (this.isModified('discount')) {
     this.isDiscount = this.discount > 0;
+  }
+  next();
+});
+
+//field isDropActive untuk cek apakah barang ini masih dalam masa aktif drop/ tidak?
+ProductSchema.virtual('isDropActive').get(function() {
+  const now = new Date();
+  return (now >= this.dropStart && now <= this.dropEnd);
+});
+
+//drop status dari barang
+ProductSchema.virtual('dropStatus').get(function() {
+  const now = new Date();
+
+  if (now < this.dropStart) {
+    return 'AkanDatang'; // Belum mulai (Disable tombol)
+  } else if (now > this.dropEnd) {
+    return 'Berakhir';    // Sudah lewat (Disable tombol)
+  } else {
+    return 'Aktif';   // Sedang jalan (Bisa beli)
+  }
+});
+
+// validasi dropEnd tidak aktif sebelum dropStart jalan (tadi bug njir)
+ProductSchema.pre('validate', function(next) {
+  if (this.dropStart && this.dropEnd && this.dropEnd < this.dropStart) {
+    this.invalidate('dropEnd', 'Waktu selesai drop barang tidak boleh sebelum waktu mulai barang di drop');
   }
   next();
 });
