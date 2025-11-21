@@ -72,9 +72,8 @@ exports.createProduct = async (req, res) => {
       price,
       quantity,
       discount,
-      images,
-      isAdvertised,
-      isDropItem,
+      images: "https://uploader.danafxc.my.id/images/eb004569-db92-4faf-bd22-c87bb802f0e4.jpg",
+      isDropItem: true,
       dropStart,
       dropEnd,
       seller: sellerId,
@@ -116,14 +115,15 @@ exports.updateProduct = async (req, res) => {
     product.quantity = quantity || product.quantity;
     product.discount = discount || product.discount;
     product.images = images || product.images;
-    product.isAdvertised = isAdvertised || product.isAdvertised;
-
     if (isDropItem !== undefined) {
       product.isDropItem = isDropItem;
     }
     product.dropStart = dropStart || product.dropStart;
     product.dropEnd = dropEnd || product.dropEnd;
     const updated = await product.save();
+
+    //bentar ini tes aja biar drop nya selalu true
+    product.isDropItem = true;
 
     res.status(200).json({
       message: 'Produk berhasil diperbarui',
