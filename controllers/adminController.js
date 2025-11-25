@@ -89,3 +89,97 @@ exports.deleteSeller = async (req, res) => {
       .json({ message: "Gagal menghapus seller", error: error.message });
   }
 };
+
+
+
+// =================================================
+// MANAJEMEN PRODUK (PENGAWASAN) DARI ADMIN
+// =================================================
+
+// Admin Mengubah Produk Apapun (Tanpa Cek Kepemilikan)
+// PUT /api/admin/products/:id
+exports.adminUpdateProduct = async (req, res) => {
+  try {
+    // Perhatikan: Kita pakai findById saja, TIDAK PAKAI { seller: req.user.id }
+    // Ini artinya Admin bisa akses produk siapa saja.
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({ message: "Produk tidak ditemukan" });
+    }
+
+    // Update field yang diperlukan (misal ada konten ilegal)
+    const {
+      name,
+      description,
+      price,
+      isAdvertised,
+      isDropItem,
+      dropStart,
+      dropEnd,
+    } = req.body;
+
+    product.name = name || product.name;
+    product.description = description || product.description;
+    product.price = price || product.price;
+    if (isAdvertised !== undefined) product.isAdvertised = isAdvertised;
+    product.dropStart = dropStart || product.dropStart;
+    product.dropEnd = dropEnd || product.dropEnd;
+
+    const updatedProduct = await product.save();
+
+    res.status(200).json({
+      message: "Produk diperbarui oleh Admin",
+      product: updatedProduct,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Gagal update produk", error: error.message });
+  }
+};
+
+//  Admin Menghapus Produk (Takedown)
+//  DELETE /api/admin/products/:id
+exports.adminDeleteProduct = async (req, res) => {
+  try {
+    const product = await Product.findByIdAndDelete(req.params.id);
+    if (!product)
+      return res.status(404).json({ message: "Produk tidak ditemukan" });
+
+    res
+      .status(200)
+      .json({ message: "Produk berhasil dihapus paksa oleh Admin" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Gagal menghapus produk", error: error.message });
+  }
+};
+
+
+
+
+// Verifikasi Akun Seller (Acc/Approve Seller)
+// PUT /api/admin/sellers/:id/verify
+exports.verifySeller = async (req, res) => {
+  try {
+    const seller = await User.findById(req.params.id);
+
+    if (!seller || seller.role !== "seller") {
+      return res.status(404).json({ message: "Seller tidak ditemukan" });
+    }
+    seller.isVerifiedAccount = !seller.isVerifiedAccount;
+
+    await seller.save();
+
+    res.status(200).json({
+      message: `Status verifikasi seller berhasil diubah menjadi: ${seller.isVerifiedAccount}`,
+      sellerName: seller.name,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Gagal verifikasi seller", error: error.message });
+  }
+};
