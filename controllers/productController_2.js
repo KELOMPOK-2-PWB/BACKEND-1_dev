@@ -40,18 +40,13 @@ exports.getAvailableProductsCustom = async (req, res) => {
             filter.category = req.query.category;
         }
 
-        // ========= Filter 3 cek status dari barang (stock dab waktu drop) ============
-        if (req.query.status === 'available') {
+        // ========= Filter 3 cek status dari barang (stock dan waktu drop) ============
+        if (req.query.status === 'ProductDrop') {
             const now = new Date();
             const stockFilter = { $expr: { $gt: ["$quantity", "$sold"] } };
             const availabilityFilter = {
                 $or: [
-                    { isDropItem: false },
-                    {
-                        isDropItem: true,
-                        dropStart: { $lte: now },
-                        dropEnd: { $gte: now }
-                    }
+                    { isDropActive: true },
                 ]
             };
             filter = { ...filter, ...stockFilter, ...availabilityFilter };

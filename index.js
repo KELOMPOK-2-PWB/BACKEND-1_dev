@@ -16,7 +16,8 @@ const userRoutes = require('./routes/userRoutes');
 const sellerRoutes = require('./routes/sellerRoutes');
 const productRoutes = require('./routes/productRoutes');
 const product2Routes  = require('./routes/product_2Routes');
-
+const cartRoutes = require('./routes/cartRoutes');
+const adminRoutes = require("./routes/adminRoutes");
 
 //db connection
 connectDB();
@@ -65,6 +66,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/seller', sellerRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/products-users', product2Routes);
+app.use('/api/cart', cartRoutes);
+app.use("/api/admin", adminRoutes);
 
 const server = app.listen(port, () => {
     console.log(`server backend running di port ${port}`)
