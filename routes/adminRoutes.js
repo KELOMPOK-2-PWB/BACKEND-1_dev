@@ -6,8 +6,10 @@ const {
   getAllSellers,
   adminUpdateSeller,
   deleteSeller,
+  verifySeller,
   adminUpdateProduct,
   adminDeleteProduct,
+  adminGetAllProducts,
 } = require("../controllers/adminController");
 
 const {
@@ -19,13 +21,18 @@ const {
 router.use(protect);
 router.use(authorize("admin"));
 
+
+// ========== (admin ke serller) ==========
 router.get("/sellers", getAllSellers);
-// router.put("/sellers/:id/verify", verifySeller); 
+router.put("/seller/:id/verify", verifySeller); 
 router.put("/seller/updateData/:id", adminUpdateSeller); 
 router.delete("/seller/delete/:id", deleteSeller); 
 
-// router.put("/products/:id", adminUpdateProduct); 
-// router.delete("/products/:id", adminDeleteProduct); 
+
+// ========== (admin ke produk) ==========
+router.get("/productsSeller", adminGetAllProducts);
+router.put("/productSeller/Update/:id", adminUpdateProduct); 
+router.delete("/productSeller/Delete/:id", adminDeleteProduct); 
 
 
 // router
