@@ -10,13 +10,12 @@ const {
   adminUpdateProduct,
   adminDeleteProduct,
   adminGetAllProducts,
+  getAllUsers,
+  getUserById,
+  // adminUpdateUser,
+  deleteUser,
 } = require("../controllers/adminController");
 
-const {
-  getUserProfile,
-  updateUserProfile,
-  changePassword,
-} = require("../controllers/userController");
 
 router.use(protect);
 router.use(authorize("admin"));
@@ -33,6 +32,12 @@ router.delete("/seller/delete/:id", deleteSeller);
 router.get("/productsSeller", adminGetAllProducts);
 router.put("/productSeller/Update/:id", adminUpdateProduct); 
 router.delete("/productSeller/Delete/:id", adminDeleteProduct); 
+
+// ========== (admin ke user) ==========
+router.get("/users", getAllUsers);
+router.get("/user/:id", getUserById); 
+// router.put("/user/update/:id", adminUpdateUser); 
+router.delete("/user/delete/:id", deleteUser);
 
 
 // router
