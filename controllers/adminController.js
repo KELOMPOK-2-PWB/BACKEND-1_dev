@@ -1,6 +1,15 @@
 const User = require("../models/Users");
 const Product = require("../models/Product");
 const bcrypt = require("bcryptjs");
+const mongoose = require("mongoose");
+
+
+
+
+// ===========================================================================================
+// MANAJEMEN SELLER OLEH ADMIN
+// ===========================================================================================
+
 
 // Ambil semua daftar seller
 //  GET /api/admin/sellers
@@ -34,9 +43,13 @@ exports.adminUpdateSeller = async (req, res) => {
     seller.avatar = req.body.avatar || seller.avatar;
     if (req.body.username) seller.username = req.body.username;
 
-    if (req.body.isVerifiedAccount !== undefined) {
-      seller.isVerifiedAccount = req.body.isVerifiedAccount;
-    }
+
+    // ======= Gua matiin dulu fitur ini biar admin gak bisa ganti verified account seller dari update yang biasa=======
+    // if (req.body.isVerifiedAccount !== undefined) {
+    //   seller.isVerifiedAccount = req.body.isVerifiedAccount;
+    // } 
+
+  
     if (req.body.sellerInfo) {
       const info = req.body.sellerInfo;
 
@@ -92,28 +105,130 @@ exports.deleteSeller = async (req, res) => {
 
 
 
-// =================================================
-// MANAJEMEN PRODUK (PENGAWASAN) DARI ADMIN
-// =================================================
+// Verifikasi Akun Seller (Acc/Approve Seller)
+// PUT /api/admin/seller/:id/verify
+exports.verifySeller = async (req, res) => {
+  try {
+    const seller = await User.findById(req.params.id);
+    if (!seller || seller.role !== "seller") {
+      return res.status(404).json({ message: "Seller tidak ditemukan" });
+    }
+    seller.isVerifiedAccount = !seller.isVerifiedAccount;
+    await seller.save();
+    res.status(200).json({
+      message: `Status verifikasi seller berhasil diubah menjadi: ${seller.isVerifiedAccount}`,
+      sellerName: seller.name,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Gagal verifikasi seller", error: error.message });
+  }
+};
 
-// Admin Mengubah Produk Apapun (Tanpa Cek Kepemilikan)
-// PUT /api/admin/products/:id
+
+
+
+// ===========================================================================================
+// MANAJEMEN PRODUK (PENGAWASAN DAN PERUBAHAN) DARI ADMIN
+// ===========================================================================================
+
+// Admin mengambil semua produk (dengan opsi filter, paging, dsb)
+// GET /api/admin/productsSeller
+exports.adminGetAllProducts = async (req, res) => {
+  try {
+    const {
+      search,
+      category,
+      sellerId,
+      isAdvertised,
+      isDropItem,
+      sort, 
+      page = 1, // halaman default 1
+      limit = 10, // limit default 10 untuk jumlah barang yang di tampilkan
+    } = req.query;
+    let query = {};
+
+    // =========== Filter 1 cek dari search/ pencarian nama produk ============
+    if (search) {
+      query.name = { $regex: search, $options: "i" };
+    }
+
+    // =========== Filter 2 cek dari category/ kategori produk ============
+    if (category) {
+      query.category = category;
+    }
+
+    // =========== Filter 3 cek dari sellerId/ produk dari seller tertentu ============
+    if (sellerId) {
+      query.seller = sellerId;
+    }
+
+    // =========== Filter 4 cek dari isAdvertised & isDropItem ============
+    if (isAdvertised !== undefined) {
+      query.isAdvertised = isAdvertised === "true";
+    }
+
+    if (isDropItem !== undefined) {
+      query.isDropItem = isDropItem === "true";
+    }
+
+    // =========== Filter 5 cek dari sort/ urutan ============
+    let sortOptions = { createdAt: -1 }; 
+    if (sort) {
+      if (sort === "termurah") sortOptions = { price: 1 };
+      if (sort === "termahal") sortOptions = { price: -1 };
+      if (sort === "palingLama") sortOptions = { createdAt: 1 };
+      if (sort === "terlaris") sortOptions = { sold: -1 }; 
+      if (sort === "tidakLaris") sortOptions = { sold: 1 };
+    }
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    const [products, total] = await Promise.all([
+      Product.find(query)
+        .populate("seller", "name username sellerInfo.store isVerifiedAccount")
+        .sort(sortOptions)
+        .skip(skip)
+        .limit(limitNum),
+      Product.countDocuments(query),
+    ]);
+
+    res.status(200).json({
+      message: "Data produk berhasil diambil",
+      pagination: {
+        totalData: total, // data yang di ambil dari products ada berapa
+        totalPages: Math.ceil(total / limitNum),
+        currentPage: pageNum, // ?page=2
+        limit: limitNum, // limit dalam 1 page bisa tampil berapa barang
+      },
+      data: products,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Gagal mengambil data produk", error: error.message });
+  }
+};
+
+
+// Admin Mengubah Produk siapa aja
+// PUT /api/admin/productSeller/Update/:id
 exports.adminUpdateProduct = async (req, res) => {
   try {
-    // Perhatikan: Kita pakai findById saja, TIDAK PAKAI { seller: req.user.id }
-    // Ini artinya Admin bisa akses produk siapa saja.
     const product = await Product.findById(req.params.id);
 
     if (!product) {
       return res.status(404).json({ message: "Produk tidak ditemukan" });
     }
 
-    // Update field yang diperlukan (misal ada konten ilegal)
     const {
       name,
       description,
       price,
       isAdvertised,
+      category,
       isDropItem,
       dropStart,
       dropEnd,
@@ -121,6 +236,7 @@ exports.adminUpdateProduct = async (req, res) => {
 
     product.name = name || product.name;
     product.description = description || product.description;
+    product.category = category || product.category;
     product.price = price || product.price;
     if (isAdvertised !== undefined) product.isAdvertised = isAdvertised;
     product.dropStart = dropStart || product.dropStart;
@@ -140,7 +256,7 @@ exports.adminUpdateProduct = async (req, res) => {
 };
 
 //  Admin Menghapus Produk (Takedown)
-//  DELETE /api/admin/products/:id
+//  DELETE /productSeller/Delete/:id
 exports.adminDeleteProduct = async (req, res) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
@@ -159,27 +275,125 @@ exports.adminDeleteProduct = async (req, res) => {
 
 
 
+// ===========================================================================================
+// MANAJEMEN SELLER (PENGAWASAN DAN PERUBAHAN) DARI ADMIN
+// ===========================================================================================
 
-// Verifikasi Akun Seller (Acc/Approve Seller)
-// PUT /api/admin/sellers/:id/verify
-exports.verifySeller = async (req, res) => {
+// Ambil semua data User (Pembeli)
+// GET /api/admin/users
+exports.getAllUsers = async (req, res) => {
   try {
-    const seller = await User.findById(req.params.id);
-
-    if (!seller || seller.role !== "seller") {
-      return res.status(404).json({ message: "Seller tidak ditemukan" });
-    }
-    seller.isVerifiedAccount = !seller.isVerifiedAccount;
-
-    await seller.save();
-
+    const users = await User.find({ role: "user" }).select(
+      "-password -otp -resetPasswordToken"
+    );
     res.status(200).json({
-      message: `Status verifikasi seller berhasil diubah menjadi: ${seller.isVerifiedAccount}`,
-      sellerName: seller.name,
+      count: users.length,
+      users,
     });
   } catch (error) {
     res
       .status(500)
-      .json({ message: "Gagal verifikasi seller", error: error.message });
+      .json({ message: "Gagal mengambil data user", error: error.message });
   }
 };
+
+// Ambil detail satu User berdasarkan ID
+// GET /api/admin/user/:id
+exports.getUserById = async (req, res) => {
+  const userId = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({
+        message: "Format ID User tidak valid. Pastikan ID benar.",
+      });
+    }
+    try {
+        const user = await User.findById(req.params.id).select('-password -otp');
+
+        if (!user) {
+            return res.status(404).json({ message: 'User tidak ditemukan' });
+        }
+        res.status(200).json(user);
+    } catch (error) {
+      
+        res.status(500).json({ message: 'Gagal mengambil detail user', error: error.message });
+    }
+};
+
+// Admin Update Data User (Bisa ganti apa saja termasuk password)
+// PUT /api/admin/users/update/:id
+
+// ========== NOTE: kode ini di comment belum di tes males ==========
+// ========= Tapi ini harus nya bisa gua copy paste dari userController terus di modif dikit ==========
+
+// exports.adminUpdateUser = async (req, res) => {
+//   const userId = req.params.id;
+//   if (!mongoose.Types.ObjectId.isValid(userId)) {
+//     return res.status(400).json({
+//       message: "Format ID User tidak valid. Pastikan ID benar.",
+//     });
+//   }
+//     try {
+//         const user = await User.findById(req.params.id);
+
+//         if (!user) {
+//             return res.status(404).json({ message: 'User tidak ditemukan' });
+//         }
+
+//         user.name = req.body.name || user.name;
+//         user.username = req.body.username || user.username;
+//         user.email = req.body.email || user.email;
+//         user.phoneNumber = req.body.phoneNumber || user.phoneNumber;
+//         user.avatar = req.body.avatar || user.avatar;
+
+//         if (req.body.isEmailVerified !== undefined) {
+//             user.isEmailVerified = req.body.isEmailVerified;
+//         }
+
+//         if (req.body.password) {
+//             user.password = req.body.password; 
+//         }
+
+//         if (req.body.address && Array.isArray(req.body.address)) {
+//           user.address = req.body.address;
+//         }
+
+//         await user.save();
+
+//         res.status(200).json({ 
+//             message: 'Data user berhasil diperbarui oleh Admin', 
+//             user: {
+//                 id: user._id,
+//                 name: user.name,
+//                 email: user.email,
+//                 username: user.username
+//             }
+//         });
+
+//     } catch (error) {
+//         if (error.code === 11000) {
+//             return res.status(400).json({ message: 'Username atau Email sudah digunakan user lain.' });
+//         }
+//         res.status(500).json({ message: 'Gagal update user', error: error.message });
+//     }
+// };
+
+// Hapus User Permanen
+// DELETE /api/admin/user/delete/:id
+exports.deleteUser = async (req, res) => {
+  const userId = req.params.id;
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    return res.status(400).json({
+      message: "Format ID User tidak valid. Pastikan ID benar.",
+    });
+  }
+    try {
+        const user = await User.findByIdAndDelete(req.params.id);
+        if (!user) {
+            return res.status(404).json({ message: 'User tidak ditemukan' });
+        }
+        res.status(200).json({ message: 'User berhasil dihapus permanen' });
+    } catch (error) {
+        res.status(500).json({ message: 'Gagal menghapus user', error: error.message });
+    }
+};
+

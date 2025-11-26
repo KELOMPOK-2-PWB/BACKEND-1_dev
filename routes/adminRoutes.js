@@ -6,26 +6,38 @@ const {
   getAllSellers,
   adminUpdateSeller,
   deleteSeller,
+  verifySeller,
   adminUpdateProduct,
   adminDeleteProduct,
+  adminGetAllProducts,
+  getAllUsers,
+  getUserById,
+  // adminUpdateUser,
+  deleteUser,
 } = require("../controllers/adminController");
 
-const {
-  getUserProfile,
-  updateUserProfile,
-  changePassword,
-} = require("../controllers/userController");
 
 router.use(protect);
 router.use(authorize("admin"));
 
+
+// ========== (admin ke serller) ==========
 router.get("/sellers", getAllSellers);
-// router.put("/sellers/:id/verify", verifySeller); 
+router.put("/seller/:id/verify", verifySeller); 
 router.put("/seller/updateData/:id", adminUpdateSeller); 
 router.delete("/seller/delete/:id", deleteSeller); 
 
-// router.put("/products/:id", adminUpdateProduct); 
-// router.delete("/products/:id", adminDeleteProduct); 
+
+// ========== (admin ke produk) ==========
+router.get("/productsSeller", adminGetAllProducts);
+router.put("/productSeller/Update/:id", adminUpdateProduct); 
+router.delete("/productSeller/Delete/:id", adminDeleteProduct); 
+
+// ========== (admin ke user) ==========
+router.get("/users", getAllUsers);
+router.get("/user/:id", getUserById); 
+// router.put("/user/update/:id", adminUpdateUser); 
+router.delete("/user/delete/:id", deleteUser);
 
 
 // router
