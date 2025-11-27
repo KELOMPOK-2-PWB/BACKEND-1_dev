@@ -12,7 +12,7 @@ const {
   adminGetAllProducts,
   getAllUsers,
   getUserById,
-  // adminUpdateUser,
+  adminUpdateUser,
   deleteUser,
 } = require("../controllers/adminController");
 
@@ -36,7 +36,7 @@ router.delete("/productSeller/Delete/:id", adminDeleteProduct);
 // ========== (admin ke user) ==========
 router.get("/users", getAllUsers);
 router.get("/user/:id", getUserById); 
-// router.put("/user/update/:id", adminUpdateUser); 
+router.put("/user/update/:id", adminUpdateUser);
 router.delete("/user/delete/:id", deleteUser);
 
 

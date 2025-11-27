@@ -12,12 +12,12 @@ exports.protect = async (req, res, next) => {
 
             next();
         } catch (error) {
-            return res.status(401).json({ message: 'Token tidak valid ditolak' });
+            return res.status(401).json({ message: 'Token Login tidak valid ditolak' });
         }
     }
 
     if (!token) {
-        return res.status(401).json({ message: 'Tidak ada token, ditolak' });
+        return res.status(401).json({ message: 'Tidak ada token Login, ditolak' });
     }
 };
 exports.authorize = (...roles) => {
