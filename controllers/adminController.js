@@ -321,61 +321,50 @@ exports.getUserById = async (req, res) => {
 
 // Admin Update Data User (Bisa ganti apa saja termasuk password)
 // PUT /api/admin/users/update/:id
+exports.adminUpdateUser = async (req, res) => {
+  const userId = req.params.id;
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    return res.status(400).json({
+      message: "Format ID User tidak valid. Pastikan ID benar.",
+    });
+  }
+    try {
+        const user = await User.findById(req.params.id);
 
-// ========== NOTE: kode ini di comment belum di tes males ==========
-// ========= Tapi ini harus nya bisa gua copy paste dari userController terus di modif dikit ==========
+        if (!user) {
+            return res.status(404).json({ message: 'User tidak ditemukan' });
+        }
 
-// exports.adminUpdateUser = async (req, res) => {
-//   const userId = req.params.id;
-//   if (!mongoose.Types.ObjectId.isValid(userId)) {
-//     return res.status(400).json({
-//       message: "Format ID User tidak valid. Pastikan ID benar.",
-//     });
-//   }
-//     try {
-//         const user = await User.findById(req.params.id);
+        user.name = req.body.name || user.name;
+        user.username = req.body.username || user.username;
+        // user.email = req.body.email || user.email;
+        user.phoneNumber = req.body.phoneNumber || user.phoneNumber;
+        user.avatar = req.body.avatar || user.avatar;
 
-//         if (!user) {
-//             return res.status(404).json({ message: 'User tidak ditemukan' });
-//         }
+        if (req.body.address && Array.isArray(req.body.address)) {
+          user.address = req.body.address;
+        }
 
-//         user.name = req.body.name || user.name;
-//         user.username = req.body.username || user.username;
-//         user.email = req.body.email || user.email;
-//         user.phoneNumber = req.body.phoneNumber || user.phoneNumber;
-//         user.avatar = req.body.avatar || user.avatar;
+        await user.save();
 
-//         if (req.body.isEmailVerified !== undefined) {
-//             user.isEmailVerified = req.body.isEmailVerified;
-//         }
+        res.status(200).json({
+            message: 'Data user berhasil diperbarui oleh Admin',
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                username: user.username,
+                address: user.address
+            }
+        });
 
-//         if (req.body.password) {
-//             user.password = req.body.password; 
-//         }
-
-//         if (req.body.address && Array.isArray(req.body.address)) {
-//           user.address = req.body.address;
-//         }
-
-//         await user.save();
-
-//         res.status(200).json({ 
-//             message: 'Data user berhasil diperbarui oleh Admin', 
-//             user: {
-//                 id: user._id,
-//                 name: user.name,
-//                 email: user.email,
-//                 username: user.username
-//             }
-//         });
-
-//     } catch (error) {
-//         if (error.code === 11000) {
-//             return res.status(400).json({ message: 'Username atau Email sudah digunakan user lain.' });
-//         }
-//         res.status(500).json({ message: 'Gagal update user', error: error.message });
-//     }
-// };
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(400).json({ message: 'Username atau Email sudah digunakan user lain.' });
+        }
+        res.status(500).json({ message: 'Gagal update user', error: error.message });
+    }
+};
 
 // Hapus User Permanen
 // DELETE /api/admin/user/delete/:id
