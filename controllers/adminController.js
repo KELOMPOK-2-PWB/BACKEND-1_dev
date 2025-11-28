@@ -16,7 +16,7 @@ const mongoose = require("mongoose");
 exports.getAllSellers = async (req, res) => {
   try {
     const sellers = await User.find({ role: "seller" }).select(
-      "-password -otp -resetPasswordToken"
+      "+password +isBanned -otp -resetPasswordToken"
     );
     res.status(200).json(sellers);
   } catch (error) {
@@ -26,6 +26,51 @@ exports.getAllSellers = async (req, res) => {
   }
 };
 
+// Ambil detail satu Seller berdasarkan ID
+// GET /api/admin/seller/:id
+exports.getSellerById = async (req, res) => {
+  const SellerId = req.params.id;
+  if (!mongoose.Types.ObjectId.isValid(SellerId)) {
+    return res.status(400).json({
+      message: "Format ID Seller tidak valid. Pastikan ID benar.",
+    });
+  }
+  try {
+    const seller = await User.findOne({ _id: SellerId, role: "seller" }).select('-password +isBanned -otp');
+
+    if (!seller) {
+      return res.status(404).json({ message: 'Seller tidak ditemukan' });
+    }
+    res.status(200).json(seller);
+  } catch (error) {
+
+    res.status(500).json({ message: 'Gagal mengambil detail user', error: error.message });
+  }
+};
+
+
+// Ambil detail satu Seller berdasarkan Name
+// GET /api/admin/seller/search/name?q=
+exports.searchSellersByName = async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) {
+      return res.status(400).json({ message: 'Mohon masukkan kata kunci pencarian (?q=...)' });
+    }
+    const users = await User.find({
+      role: 'seller',
+      name: { $regex: q, $options: 'i' }
+    })
+        .select('-password -otp -resetPasswordToken +isBanned');
+    res.status(200).json({
+      count: users.length,
+      users
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Gagal mencari seller', error: error.message });
+  }
+};
 
 
 // Admin Mengubah Data Seller (Paksa Update)
@@ -83,7 +128,7 @@ exports.adminUpdateSeller = async (req, res) => {
   }
 };
 
-// Hapus Seller (Banned)
+// Hapus Data Seller
 // DELETE /api/admin/seller/delete/:id
 exports.deleteSeller = async (req, res) => {
   try {
@@ -125,7 +170,6 @@ exports.verifySeller = async (req, res) => {
       .json({ message: "Gagal verifikasi seller", error: error.message });
   }
 };
-
 
 
 
@@ -276,7 +320,7 @@ exports.adminDeleteProduct = async (req, res) => {
 
 
 // ===========================================================================================
-// MANAJEMEN SELLER (PENGAWASAN DAN PERUBAHAN) DARI ADMIN
+// MANAJEMEN USER (PENGAWASAN DAN PERUBAHAN) DARI ADMIN
 // ===========================================================================================
 
 // Ambil semua data User (Pembeli)
@@ -284,7 +328,7 @@ exports.adminDeleteProduct = async (req, res) => {
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find({ role: "user" }).select(
-      "-password -otp -resetPasswordToken"
+      "+password +isBanned -otp -resetPasswordToken"
     );
     res.status(200).json({
       count: users.length,
@@ -307,7 +351,7 @@ exports.getUserById = async (req, res) => {
       });
     }
     try {
-        const user = await User.findById(req.params.id).select('-password -otp');
+        const user = await User.findById(req.params.id).select('-password +isBanned -otp');
 
         if (!user) {
             return res.status(404).json({ message: 'User tidak ditemukan' });
@@ -319,8 +363,34 @@ exports.getUserById = async (req, res) => {
     }
 };
 
+
+// Ambil detail satu User berdasarkan Name
+// GET /api/admin/user/search/name?q=
+exports.searchUsersByName = async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) {
+      return res.status(400).json({ message: 'Mohon masukkan kata kunci pencarian (?q=...)' });
+    }
+    const users = await User.find({
+      role: 'user',
+      name: { $regex: q, $options: 'i' }
+    })
+        .select('-password -otp -resetPasswordToken +isBanned');
+    res.status(200).json({
+      count: users.length,
+      users
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Gagal mencari user', error: error.message });
+  }
+};
+
+
+
 // Admin Update Data User (Bisa ganti apa saja termasuk password)
-// PUT /api/admin/users/update/:id
+// PUT /api/admin/user/updateData/:id
 exports.adminUpdateUser = async (req, res) => {
   const userId = req.params.id;
   if (!mongoose.Types.ObjectId.isValid(userId)) {
@@ -366,7 +436,7 @@ exports.adminUpdateUser = async (req, res) => {
     }
 };
 
-// Hapus User Permanen
+// Hapus Seller dan user permanenen secara bersama
 // DELETE /api/admin/user/delete/:id
 exports.deleteUser = async (req, res) => {
   const userId = req.params.id;
@@ -385,4 +455,48 @@ exports.deleteUser = async (req, res) => {
         res.status(500).json({ message: 'Gagal menghapus user', error: error.message });
     }
 };
+
+
+// ==================== UNTUK BANNED ADMIN USER DAN SELLER DI JADIKAN SATU ===================
+// Ban atau Unban User/user
+// PUT /api/admin/userseller/banned/:id?banned=
+exports.adminBannedUserSeller = async (req, res) => {
+  const userId = req.params.id;
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    return res.status(400).json({
+      message: "Format ID User/ Seller tidak valid. Pastikan ID benar.",
+    });
+  }
+  try {
+    const user = await User.findById(req.params.id).select('+isBanned');
+
+    if (!user) {
+      return res.status(404).json({ message: 'user/ Seller tidak ditemukan' });
+    }
+
+    if (user.role === 'admin' || user.role === 'superadmin') {
+      return res.status(400).json({ message: 'Tidak dapat memblokir sesama Admin.' });
+    }
+    const { banned } = req.query;
+
+    if (banned !== undefined) {
+      user.isBanned = banned === 'true';
+    } else {
+      user.isBanned = !user.isBanned;
+    }
+
+    await user.save();
+
+    const statusText = user.isBanned ? 'DIBLOKIR' : 'DIPULIHKAN';
+
+    res.status(200).json({
+      message: `Akses User/ Seller ${user.name} berhasil ${statusText}.`,
+      isBanned: user.isBanned
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Gagal mengubah status banned', error: error.message });
+  }
+};
+
 
