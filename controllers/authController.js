@@ -141,13 +141,18 @@ exports.login = async (req, res) => {
         }
         const user = await User.findOne({
             $or: [{ email: emailOrUsername }, { username: emailOrUsername }],
-        }).select('+password');
+        }).select('+password +isBanned');
 
         if (!user || !(await bcrypt.compare(password, user.password))) {
             return res.status(401).json({ message: 'Email/username atau password salah' });
         }
         if (!user.isEmailVerified) {
             return res.status(403).json({ message: 'Login gagal. Akun Anda belum diverifikasi.' });
+        }
+        if (user.isBanned) {
+            return res.status(403).json({
+                message: 'Akun Anda telah DIBOKIR karena pelanggaran kebijakan.' // sementara, gua masih bingung ini hubugin siapa ya buat lepas nya:v admin kah
+            });
         }
 
         const token = generateToken(user._id, user.role);
@@ -161,6 +166,7 @@ exports.login = async (req, res) => {
                 email: user.email,
                 phoneNumber: user.phoneNumber,
                 role: user.role,
+                isBanned: user.isBanned,
             }
         });
 
