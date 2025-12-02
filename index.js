@@ -22,13 +22,20 @@ const adminRoutes = require("./routes/adminRoutes");
 
 //db connection
 connectDB();
+const allowedOrigins = process.env.FRONTEND_URL.split(",");
 
+// CORS config (dynamic)
 const corsOptions = {
-  origin: process.env.FRONTEND_URL, // ini url dari frontend
-  optionsSuccessStatus: 200
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS blocked: origin not allowed"));
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200,
 };
-
-
 
 //use app module
 app.use(morgan('dev')) //kalau log gak jalan ini aktifin aja, kalau double baru di matiin di mac gua -dana gak mau jalan log nya
