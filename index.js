@@ -9,6 +9,7 @@ const morgan = require('morgan');
 const cors = require('cors');
 const authenticateToken = require('./middleware/authBackend');
 const connectDB = require('./config/db');
+const mongoose = require("mongoose");
 
 
 const authRoutes = require('./routes/authRoutes');
@@ -61,6 +62,14 @@ app.use('/api/products', productRoutes);
 app.use('/api/products-users', product2Routes);
 app.use('/api/cart', cartRoutes);
 app.use("/api/admin", adminRoutes);
+
+
+if (process.env.NODE_ENV === 'development') {
+    mongoose.set('debug', (collectionName, method, query, doc) => {
+        console.log(`\x1b[36m[MONGO]\x1b[0m ${collectionName}.${method}`, JSON.stringify(query), doc);
+    });
+}
+
 
 const server = app.listen(port, () => {
     console.log(`server backend running di port ${port}`)
