@@ -20,6 +20,8 @@ const product2Routes  = require('./routes/product_2Routes');
 const cartRoutes = require('./routes/cartRoutes');
 const adminRoutes = require("./routes/adminRoutes");
 const orderRoutes = require('./routes/orderRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
+
 
 //db connection
 connectDB();
@@ -71,6 +73,8 @@ app.use('/api/products-users', product2Routes);
 app.use('/api/cart', cartRoutes);
 app.use("/api/admin", adminRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/reviews', reviewRoutes);
+
 
 if (process.env.NODE_ENV === 'development') {
     mongoose.set('debug', (collectionName, method, query, doc) => {
