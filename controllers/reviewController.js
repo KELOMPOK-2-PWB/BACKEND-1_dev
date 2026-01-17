@@ -1,6 +1,7 @@
 const Review = require('../models/Review');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const mongoose = require('mongoose');
 
 // ==========================
 // CREATE REVIEW (USER)
@@ -83,11 +84,19 @@ exports.getProductReviews = async (req, res) => {
     try {
         const { productId } = req.params;
 
+        if (!mongoose.Types.ObjectId.isValid(productId)) {
+            return res.status(400).json({ message: 'Format ID Produk tidak valid' });
+        }
+
         const reviews = await Review.find({ product: productId })
-            .populate('user', 'name avatar')
+            .populate('user', 'name')
             .sort({ createdAt: -1 });
 
-        res.status(200).json(reviews);
+        res.status(200).json({
+            message: 'Daftar review produk',
+            count: reviews.length,
+            data: reviews
+        });
 
     } catch (error) {
         res.status(500).json({

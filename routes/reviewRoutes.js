@@ -6,16 +6,16 @@ const {
     getProductReviews
 } = require('../controllers/reviewController');
 
-const { protect } = require('../middleware/protectMiddleware');
+const { protect, authorize} = require('../middleware/protectMiddleware');
 const authBackend = require('../middleware/authBackend');
 
 // semua lewat backend auth
 router.use(authBackend);
 
 // user login
-router.post('/:productId', protect, createReview);
+router.post('/:productId', protect, authorize("user"), createReview);
 
 // public
-router.get('/:productId', getProductReviews);
+router.get('/:productId', protect, authorize("user"), getProductReviews);
 
 module.exports = router;
