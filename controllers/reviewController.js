@@ -19,12 +19,13 @@ exports.createReview = async (req, res) => {
         // 1️⃣ cek apakah user pernah beli produk ini
         const order = await Order.findOne({
             user: userId,
-            "orderItems.product": productId
+            "items.product": productId,
+            status: 'completed'
         });
 
         if (!order) {
             return res.status(403).json({
-                message: 'Anda belum pernah membeli produk ini'
+                message: 'Anda tidak dapat mereview produk ini. FE cek sttatus user wajib (Status: Completed) pembelian nya.'
             });
         }
 
@@ -33,7 +34,6 @@ exports.createReview = async (req, res) => {
             user: userId,
             product: productId
         });
-
         if (existingReview) {
             return res.status(400).json({
                 message: 'Anda sudah memberikan review untuk produk ini'
@@ -41,12 +41,12 @@ exports.createReview = async (req, res) => {
         }
 
         // 3️⃣ simpan review
-        const review = new Review({
+        const review = await Review.create({
             user: userId,
             product: productId,
             order: order._id,
-            rating,
-            comment
+            rating: Number(rating),
+            comment: comment
         });
 
         await review.save();

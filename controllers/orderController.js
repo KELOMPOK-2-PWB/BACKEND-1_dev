@@ -6,12 +6,33 @@ const User = require('../models/Users');
 const crypto = require("crypto");
 
 
-// Helper rando unique code user beli
+// Helper random unique code user beli
 const generateUniqueCode = () => {
   return (
     "TRX-" + Date.now().toString().slice(-6) + Math.floor(Math.random() * 100)
   );
 };
+
+
+
+exports.getMyOrders = async (req, res) => {
+    try {
+        const orders = await Order.find({ user: req.user._id })
+            .populate('items.product', 'name price images')
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            message: 'Riwayat pesanan Anda',
+            count: orders.length,
+            data: orders
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Gagal mengambil riwayat pesanan', error: error.message });
+    }
+};
+
+
+
 
 
 // Checkout dan buat pesanan baru
@@ -104,8 +125,7 @@ exports.uploadPaymentProof = async (req, res) => {
         .json({ message: "Anda tidak berhak mengubah order ini" });
     }
 
-    // Update Order
-    order.paymentProof = paymentProofUrl; 
+    order.paymentProof = paymentProofUrl;
     order.status = "waiting_verification"; 
     await order.save();
 
@@ -176,3 +196,34 @@ exports.validatePayment = async (req, res) => {
     }
 };
 
+
+
+
+exports.completeOrder = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const userId = req.user._id;
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ message: 'Order tidak ditemukan' });
+        }
+        if (order.user.toString() !== userId.toString()) {
+            return res.status(403).json({ message: 'Anda tidak memiliki akses ke order ini' });
+        }
+        if (order.status !== 'sent') {
+            return res.status(400).json({
+                message: 'Pesanan belum dikirim atau sudah selesai, tidak bisa konfirmasi diterima.'
+            });
+        }
+        order.status = 'completed';
+        await order.save();
+
+        res.status(200).json({
+            message: 'Terima kasih! Pesanan telah diselesaikan.',
+            status: order.status
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Gagal menyelesaikan pesanan', error: error.message });
+    }
+};

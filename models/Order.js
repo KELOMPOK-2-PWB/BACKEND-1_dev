@@ -6,35 +6,12 @@ const OrderSchema = new mongoose.Schema({
         required: true,
         ref: 'User',
     },
-    resiOrder: {
-        type: String,
-        default: null
-    },
     items: [{
         product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
         quantity: { type: Number, required: true },
         price: { type: Number, required: true }, // snapshot harga ketika user beli
         seller: { type: mongoose.Schema.Types.ObjectId, ref: 'User' } //  id deller 
     }],
-    orderItems: [
-        {
-            product: {
-                type: mongoose.Schema.Types.ObjectId,
-                required: true,
-                ref: 'Product',
-            },
-            seller: {
-                type: mongoose.Schema.Types.ObjectId,
-                required: true,
-                ref: 'User',
-            },
-            name: { type: String, required: true },
-            quantity: { type: Number, required: true },
-            price: { type: Number, required: true },
-            image: { type: String, required: true },
-        },
-    ],
-
     shippingAddress: {
         street: { type: String, required: true },
         city: { type: String, required: true },
@@ -91,15 +68,26 @@ const OrderSchema = new mongoose.Schema({
     deliveredAt: {
         type: Date,
     },
+
+    resiOrder: {
+        type: String,
+        default: null
+    },
+    courier: {
+        type: String,
+        default: null },
+
     status: {
         type: String,
         enum: [
             'pending_payment',      
             'waiting_verification', 
             'processed',           
-            'rejected',             
+            'rejected',
+            'packing',
             'sent',                 
-            'completed'             
+            'completed',
+            'rejected'
         ],
         default: 'pending_payment'
     }

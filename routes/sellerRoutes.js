@@ -6,7 +6,8 @@ const {
   getSellerAddres,
   addSellerAddress,
   shipOrder,
-  getIncomingOrders
+  getIncomingOrders,
+  processOrder,
 } = require("../controllers/sellerController");
 const { protect, authorize } = require('../middleware/protectMiddleware');
 const authBackend = require('../middleware/authBackend');
@@ -23,6 +24,7 @@ router.post('/address-seller', protect, authorize('seller'), addSellerAddress);
 
 
 router.get('/orders', protect, authorize('seller'), getIncomingOrders);
+router.put('/orders/:orderId/process', protect, authorize('seller'), processOrder);
 router.put('/orders/:orderId/ship', protect, authorize('seller'), shipOrder);
 
 module.exports = router;

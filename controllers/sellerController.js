@@ -188,6 +188,20 @@ exports.verifySellerStatus = async (req, res) => {
  };
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+//
 exports.getIncomingOrders = async (req, res) => {
   try {
     const sellerId = req.user._id;
@@ -209,38 +223,73 @@ exports.getIncomingOrders = async (req, res) => {
   }
 };
 
-exports.shipOrder = async (req, res) => {
+
+exports.processOrder = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { trackingNumber } = req.body;
-
-    if (!trackingNumber) {
-      return res.status(400).json({ message: 'Nomor resi wajib diisi' });
-    }
-
+    const sellerId = req.user._id;
     const order = await Order.findById(orderId);
-
-    if (!order) {
-      return res.status(404).json({ message: 'Order tidak ditemukan' });
+    if (!order) return res.status(404).json({ message: 'Order tidak ditemukan' });
+    const isMyOrder = order.items.some(item => item.seller.toString() === sellerId.toString());
+    if (!isMyOrder) return res.status(403).json({ message: 'Akses ditolak' });
+    if (order.status === 'packing') {
+      return res.status(200).json({
+        message: 'Pesanan ini sudah dalam proses pengemasan (Packing).',
+        status: order.status
+      });
     }
-    const isMyOrder = order.items.some(item => item.seller.toString() === req.user._id.toString());
-    if (!isMyOrder) {
-      return res.status(403).json({ message: 'Anda tidak memiliki akses ke order ini' });
+    if (order.status !== 'processed') {
+      return res.status(400).json({
+        message: 'Pesanan tidak bisa diproses. Pastikan status sudah dibayar (processed) dan belum dikirim.'
+      });
     }
-
-    // Update Order
-    order.trackingNumber = trackingNumber;
-    order.status = 'sent';
+    if (order.status !== 'processed') {
+      return res.status(400).json({ message: 'Pesanan belum dibayar atau status tidak valid' });
+    }
+    order.status = 'packing';
     await order.save();
 
     res.status(200).json({
-      message: 'Pesanan berhasil dikirim. Status update ke sent.',
-      orderId: order._id,
-      trackingNumber: order.trackingNumber,
+      message: 'Status diubah menjadi Sedang Dikemas',
       status: order.status
     });
 
   } catch (error) {
-    res.status(500).json({ message: 'Gagal update status pengiriman', error: error.message });
+    res.status(500).json({ message: 'Gagal memproses pesanan', error: error.message });
   }
 };
+
+
+exports.shipOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { resiOrder, courier } = req.body;
+    const sellerId = req.user._id;
+    if (!resiOrder || !courier) {
+      return res.status(400).json({ message: 'resiOrder dan courier wajib diisi' });
+    }
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ message: 'Order tidak ditemukan' });
+
+    const isMyOrder = order.items.some(item => item.seller.toString() === sellerId.toString());
+    if (!isMyOrder) return res.status(403).json({ message: 'Akses ditolak' });
+
+    if (!['processed', 'packing'].includes(order.status)) {
+      return res.status(400).json({ message: 'Status pesanan tidak valid untuk pengiriman' });
+    }
+    order.resiOrder = resiOrder;
+    order.courier = courier;
+    order.status = 'sent';
+    await order.save();
+
+    res.status(200).json({
+      message: 'Pesanan berhasil dikirim',
+      resiOrder: order.resiOrder,
+      status: order.status
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Gagal update pengiriman', error: error.message });
+  }
+};
+
