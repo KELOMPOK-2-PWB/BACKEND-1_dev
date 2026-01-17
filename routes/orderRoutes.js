@@ -1,12 +1,16 @@
 const express = require('express');
 const router = express.Router();
 
-const { getMyOrders, getOrderById, checkout } = require('../controllers/orderController');
+const { uploadPaymentProof, validatePayment, checkout, getOrdersForVerification } = require('../controllers/orderController');
 
-const { protect, authorize } = require('../middleware/protectMiddleware');
+const { protect, authorize} = require('../middleware/protectMiddleware');
 
-router.get('/myorders', protect, authorize('user'), getMyOrders);
-router.post('/checkout', protect, authorize('user'), checkout);
-router.get('/myorder/:id', protect, authorize('user'), getOrderById);
+router.post("/checkout", protect, authorize("user"), checkout);
+
+router.post("/:orderId/payment", protect, authorize("user"), uploadPaymentProof);
+
+router.get('/verification-list', protect, authorize("admin"), getOrdersForVerification);
+router.put('/:orderId/validate', protect, authorize("admin"), validatePayment);
+
 
 module.exports = router;

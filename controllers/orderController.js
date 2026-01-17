@@ -3,148 +3,176 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Cart = require('../models/Cart');
 const User = require('../models/Users');
+const crypto = require("crypto");
 
 
-// Ambil semua pesanan milik User
-//GET /api/orders/myorders
-exports.getMyOrders = async (req, res) => {
-    try {
-        // Cari order dimana field 'user' sama dengan ID user yang login
-        const orders = await Order.find({ user: req.user._id })
-            .sort({ createdAt: -1 }); // Urutkan dari yang terbaru
-
-        res.status(200).json(orders);
-    } catch (error) {
-        res.status(500).json({ message: 'Gagal mengambil riwayat pesanan', error: error.message });
-    }
-};
-
-// Ambil semua pesanan milik User
-// GET /api/orders/myorder/:id
-exports.getOrderById = async (req, res) => {
-    try {
-        const order = await Order.findById(req.params.id)
-            .populate('user', 'name email');
-
-        if (!order) {
-            return res.status(404).json({ message: 'Pesanan tidak ditemukan' });
-        }
-        if (order.user._id.toString() !== req.user._id.toString() && req.user.role !== 'admin' && req.user.role !== 'superadmin') {
-            return res.status(403).json({ message: 'Akses ditolak. Ini bukan pesanan Anda.' });
-        }
-
-        res.status(200).json(order);
-    } catch (error) {
-        res.status(500).json({ message: 'Gagal mengambil detail pesanan', error: error.message });
-    }
+// Helper rando unique code user beli
+const generateUniqueCode = () => {
+  return (
+    "TRX-" + Date.now().toString().slice(-6) + Math.floor(Math.random() * 100)
+  );
 };
 
 
-// Checkout
-// POST /api/orders/checkout
+// Checkout dan buat pesanan baru
+//POST /api/orders/checkout
 exports.checkout = async (req, res) => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
-        if (!req.user) {
-            throw new Error('User tidak login/ memiliki JWT token.');
-        }
         const userId = req.user._id;
-
-        const { addressId } = req.body;
-
-        const user = await User.findById(userId);
-        if (!user) throw new Error('User tidak ditemukan');
-        let selectedAddress;
-        if (addressId) {
-            selectedAddress = user.address.id(addressId);
-        } else {
-            selectedAddress = user.address.find(addr => addr.isDefaultAddress === true);
+        const { shippingAddress, shippingCost, selectedProductIds } = req.body;
+        if (!shippingAddress || !shippingAddress.street || !shippingAddress.city) {
+            return res.status(400).json({ message: 'Alamat pengiriman tidak lengkap' });
         }
-
-        if (!selectedAddress) {
-            throw new Error('Alamat pengiriman tidak ditemukan. Mohon atur alamat di profil.');
+        if (!selectedProductIds || !Array.isArray(selectedProductIds) || selectedProductIds.length === 0) {
+            return res.status(400).json({ message: 'Pilih setidaknya satu produk untuk dicheckout' });
         }
-
-        const shippingAddressSnapshot = {
-            street: selectedAddress.street,
-            city: selectedAddress.city,
-            province: selectedAddress.province,
-            postalCode: selectedAddress.postalCode,
-            country: selectedAddress.country,
-            addressNotes: selectedAddress.addressNotes
-        };
         const cart = await Cart.findOne({ user: userId }).populate('items.product');
 
         if (!cart || cart.items.length === 0) {
-            throw new Error('Keranjang kosong');
+            return res.status(400).json({ message: 'Keranjang kosong' });
         }
-
-        let totalAmount = 0;
-        const orderItems = [];
-        for (const item of cart.items) {
-
-            if (!item.product) {
-                throw new Error(`Ada barang di keranjang yang produknya sudah dihapus dari database. Silakan hapus item invalid dari keranjang Anda.`);
-            }
-
-            const productId = item.product._id;
-            const buyQty = item.quantity;
-            const updatedProduct = await Product.findOneAndUpdate(
-                {
-                    _id: productId,
-                    quantity: { $gte: buyQty },
-                     isDropActive: true
-                },
-                {
-                    $inc: { quantity: -buyQty, sold: buyQty }
-                },
-                { session, new: true }
-            );
-
-            if (!updatedProduct) {
-                throw new Error(`Gagal checkout: Stok barang '${item.product.name}' habis atau tidak tersedia!`);
-            }
-
-            totalAmount += updatedProduct.price * buyQty;
-
-            orderItems.push({
-                product: productId,
-                seller: updatedProduct.seller,
-                name: updatedProduct.name,
-                price: updatedProduct.price,
-                quantity: buyQty,
-                image: updatedProduct.images[0]
-            });
-        }
-
-        const newOrder = new Order({
-            user: userId,
-            orderItems: orderItems,
-            shippingAddress: shippingAddressSnapshot,
-            totalPrice: totalAmount,
-            status: 'nanti dynamic ini sesuai status',
-            paymentMethod: 'ini gak tahu apa :v'
+        const itemsToCheckout = cart.items.filter(item => {
+            return selectedProductIds.includes(item.product._id.toString());
         });
 
-        await newOrder.save({ session });
-        // kalau udah masuk ke order di cart di hapus
-        cart.items = [];
-        await cart.save({ session });
+        if (itemsToCheckout.length === 0) {
+            return res.status(400).json({ message: 'Produk yang dipilih tidak ditemukan di keranjang Anda' });
+        }
+        let itemsTotal = 0;
+        const orderItems = itemsToCheckout.map(item => {
+            itemsTotal += item.product.price * item.quantity;
+            return {
+                product: item.product._id,
+                quantity: item.quantity,
+                price: item.product.price,
+                seller: item.product.seller
+            };
+        });
 
-        await session.commitTransaction();
-        session.endSession();
+        const grandTotal = itemsTotal + (shippingCost || 0);
+        const code = generateUniqueCode(); // Pastikan fungsi helper ini ada di file Anda
+        const newOrder = await Order.create({
+            user: userId,
+            items: orderItems,
+            shippingAddress: shippingAddress,
+            totalAmount: grandTotal,
+            uniqueCode: code,
+            status: 'pending_payment'
+        });
+        const remainingItems = cart.items.filter(item => {
+            return !selectedProductIds.includes(item.product._id.toString());
+        });
+
+        cart.items = remainingItems;
+        await cart.save();
 
         res.status(201).json({
-            message: 'Checkout berhasil!',
-            order: newOrder
+            message: 'Checkout berhasil',
+            orderId: newOrder._id,
+            uniqueCode: code,
+            totalAmount: grandTotal,
+            itemCount: orderItems.length
         });
 
     } catch (error) {
-        await session.abortTransaction();
-        session.endSession();
-        console.error("Checkout Error:", error);
-        res.status(400).json({ message: 'Transaksi Gagal', error: error.message });
+        console.error(error);
+        res.status(500).json({ message: 'Gagal checkout', error: error.message });
     }
 };
+
+
+// Upload bukti pembayaran
+// POST /api/orders/:orderId/payment
+exports.uploadPaymentProof = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { paymentProofUrl } = req.body; 
+    if (!paymentProofUrl) {
+      return res
+        .status(400)
+        .json({ message: "URL bukti pembayaran wajib disertakan" });
+    }
+
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({ message: "Order tidak ditemukan" });
+    }
+    if (order.user.toString() !== req.user._id.toString()) {
+      return res
+        .status(403)
+        .json({ message: "Anda tidak berhak mengubah order ini" });
+    }
+
+    // Update Order
+    order.paymentProof = paymentProofUrl; 
+    order.status = "waiting_verification"; 
+    await order.save();
+
+    res.status(200).json({
+      message: "Bukti pembayaran diterima. Mohon tunggu verifikasi Admin.",
+      status: order.status,
+      proofUrl: order.paymentProof,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Gagal update bukti bayar", error: error.message });
+  }
+};
+
+
+/// Validasi admin cek
+// POST /api/orders/verification-list
+exports.getOrdersForVerification = async (req, res) => {
+    try {
+        const orders = await Order.find({ status: 'waiting_verification' })
+            .populate('user', 'name email')
+            .populate('items.product', 'name price')
+            .sort({ updatedAt: 1 });
+
+        res.status(200).json({
+            message: 'Daftar pesanan menunggu verifikasi',
+            count: orders.length,
+            data: orders
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Gagal mengambil data verifikasi', error: error.message });
+    }
+};
+
+
+
+// Validasi bukti pembayaran oleh Admin
+// POST /api/orders/:orderId/validate
+exports.validatePayment = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { action } = req.body;
+
+        const order = await Order.findById(orderId);
+        if (!order) return res.status(404).json({ message: 'Order tidak ditemukan' });
+
+        if (action === 'approve') {
+            order.status = 'processed';
+            await order.save();
+                        return res.status(200).json({ message: 'Pembayaran valid. Pesanan diteruskan ke Seller.' });
+
+        } else if (action === 'reject') {
+            order.status = 'rejected'; 
+            // bentar ini komentarin dulu
+            // ini fungsi nya hapus bukti lama biar user upload ulang
+            // order.paymentProof = null; 
+            await order.save();
+
+            return res.status(200).json({ message: 'Pembayaran ditolak. User di mintaa upload ulang.' });
+        } else {
+            return res.status(400).json({ message: 'Action tidak valid' });
+        }
+
+    } catch (error) {
+        res.status(500).json({ message: 'Gagal validasi', error: error.message });
+    }
+};
+

@@ -1,6 +1,6 @@
 const User = require('../models/Users');
 const bcrypt = require("bcryptjs");
-
+const Order = require('../models/Order');
 
 
 //Get profile Users
@@ -186,3 +186,61 @@ exports.verifySellerStatus = async (req, res) => {
        .json({ message: "Gagal menambah alamat seller", error: error.message });
    }
  };
+
+
+exports.getIncomingOrders = async (req, res) => {
+  try {
+    const sellerId = req.user._id;
+    const orders = await Order.find({
+      "items.seller": sellerId,
+      status: "processed"
+    })
+        .populate('user', 'name email')
+        .populate('items.product', 'name price images');
+
+    res.status(200).json({
+      message: 'Daftar pesanan masuk',
+      count: orders.length,
+      data: orders
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Gagal mengambil pesanan', error: error.message });
+  }
+};
+
+exports.shipOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { trackingNumber } = req.body;
+
+    if (!trackingNumber) {
+      return res.status(400).json({ message: 'Nomor resi wajib diisi' });
+    }
+
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order tidak ditemukan' });
+    }
+    const isMyOrder = order.items.some(item => item.seller.toString() === req.user._id.toString());
+    if (!isMyOrder) {
+      return res.status(403).json({ message: 'Anda tidak memiliki akses ke order ini' });
+    }
+
+    // Update Order
+    order.trackingNumber = trackingNumber;
+    order.status = 'sent';
+    await order.save();
+
+    res.status(200).json({
+      message: 'Pesanan berhasil dikirim. Status update ke sent.',
+      orderId: order._id,
+      trackingNumber: order.trackingNumber,
+      status: order.status
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Gagal update status pengiriman', error: error.message });
+  }
+};

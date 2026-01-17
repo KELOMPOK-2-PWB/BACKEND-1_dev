@@ -6,7 +6,16 @@ const OrderSchema = new mongoose.Schema({
         required: true,
         ref: 'User',
     },
-
+    resiOrder: {
+        type: String,
+        default: null
+    },
+    items: [{
+        product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+        quantity: { type: Number, required: true },
+        price: { type: Number, required: true }, // snapshot harga ketika user beli
+        seller: { type: mongoose.Schema.Types.ObjectId, ref: 'User' } //  id deller 
+    }],
     orderItems: [
         {
             product: {
@@ -35,19 +44,15 @@ const OrderSchema = new mongoose.Schema({
         addressNotes: { type: String }
     },
 
-    paymentMethod: {
+    uniqueCode: {
         type: String,
         required: true,
-        default: 'Kosong dulu aja',
+        unique: true
     },
-
-    paymentResult: {
-        id: String,
-        status: String,
-        update_time: String,
-        email_address: String,
+    paymentProof: {
+        type: String, 
+        default: null
     },
-
     itemsPrice: {
         type: Number,
         required: true,
@@ -88,10 +93,16 @@ const OrderSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        required: true,
-        enum: ['Pending', 'Paid', 'Processing', 'Shipped', 'Delivered', 'Cancelled'],
-        default: 'Pending',
-    },
+        enum: [
+            'pending_payment',      
+            'waiting_verification', 
+            'processed',           
+            'rejected',             
+            'sent',                 
+            'completed'             
+        ],
+        default: 'pending_payment'
+    }
 
 }, {
     timestamps: true
