@@ -5,14 +5,31 @@ const User = require('../models/Users');
 // /api/products-users
 exports.getAvailableProducts = async (req, res) => {
     try {
-        const products = await Product.find()
-            .populate('seller', 'name sellerInfo.store')
-            .sort({ createdAt: -1 }); // urutan barang paling terbaru
+        const { search, category, minRating } = req.query;
+        let query = {};
 
-        res.status(200).json(products);
+        if (search) query.name = { $regex: search, $options: 'i' };
+        if (category) query.category = category;
+        if (minRating) query.rating = { $gte: Number(minRating) };
+
+        const products = await Product.find(query)
+            .populate('seller', 'name')
+            .populate({
+                path: 'reviews',
+                select: 'rating comment user createdAt',
+                options: { sort: { createdAt: -1 }, limit: 1 },
+                populate: { path: 'user', select: 'name' }
+            })
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            message: 'Data produk beserta snippet review',
+            count: products.length,
+            data: products
+        });
 
     } catch (error) {
-        res.status(500).json({ message: "Gagal mengambil data produk", error: error.message });
+        res.status(500).json({ message: 'Error', error: error.message });
     }
 };
 

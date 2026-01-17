@@ -188,20 +188,8 @@ exports.verifySellerStatus = async (req, res) => {
  };
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-//
+//  GET /api/seller/orders
+// Seller cek order
 exports.getIncomingOrders = async (req, res) => {
   try {
     const sellerId = req.user._id;
@@ -223,7 +211,8 @@ exports.getIncomingOrders = async (req, res) => {
   }
 };
 
-
+//Seller packing barang
+// PUT /api/seller/orders/:orderId/process
 exports.processOrder = async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -260,6 +249,8 @@ exports.processOrder = async (req, res) => {
 };
 
 
+// seller kirim barang
+// PUT /api/seller/orders/:orderId/ship
 exports.shipOrder = async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -280,6 +271,8 @@ exports.shipOrder = async (req, res) => {
     order.resiOrder = resiOrder;
     order.courier = courier;
     order.status = 'sent';
+    order.isDelivered = true;
+
     await order.save();
 
     res.status(200).json({

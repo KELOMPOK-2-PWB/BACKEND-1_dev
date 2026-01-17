@@ -4,7 +4,7 @@ const Product = require('../models/Product');
 const Cart = require('../models/Cart');
 const User = require('../models/Users');
 const crypto = require("crypto");
-
+const Review = require('../models/Review');
 
 // Helper random unique code user beli
 const generateUniqueCode = () => {
@@ -13,8 +13,8 @@ const generateUniqueCode = () => {
   );
 };
 
-
-
+// GET /api/orders/myOrder
+// user get order status
 exports.getMyOrders = async (req, res) => {
     try {
         const orders = await Order.find({ user: req.user._id })
@@ -111,7 +111,7 @@ exports.uploadPaymentProof = async (req, res) => {
     if (!paymentProofUrl) {
       return res
         .status(400)
-        .json({ message: "URL bukti pembayaran wajib disertakan" });
+        .json({ message: "URL bukti pembayaran wajib disertakan | paymentProofUrl" });
     }
 
     const order = await Order.findById(orderId);
@@ -142,8 +142,8 @@ exports.uploadPaymentProof = async (req, res) => {
 };
 
 
-/// Validasi admin cek
-// POST /api/orders/verification-list
+//  admin cek Validasi
+// get /api/orders/verification-list
 exports.getOrdersForVerification = async (req, res) => {
     try {
         const orders = await Order.find({ status: 'waiting_verification' })
@@ -176,8 +176,10 @@ exports.validatePayment = async (req, res) => {
 
         if (action === 'approve') {
             order.status = 'processed';
+            order.isPaid = true;
+            order.paidAt = Date.now();
             await order.save();
-                        return res.status(200).json({ message: 'Pembayaran valid. Pesanan diteruskan ke Seller.' });
+            return res.status(200).json({ message: 'Pembayaran valid. Pesanan diteruskan ke Seller.' });
 
         } else if (action === 'reject') {
             order.status = 'rejected'; 
@@ -197,8 +199,8 @@ exports.validatePayment = async (req, res) => {
 };
 
 
-
-
+// Put  /api/orders/:orderId//complete
+// User konfirmasi pesanan sudah Diterima
 exports.completeOrder = async (req, res) => {
     try {
         const { orderId } = req.params;
@@ -216,6 +218,8 @@ exports.completeOrder = async (req, res) => {
             });
         }
         order.status = 'completed';
+        order.isDelivered = true;
+        order.deliveredAt = Date.now();
         await order.save();
 
         res.status(200).json({
@@ -225,5 +229,48 @@ exports.completeOrder = async (req, res) => {
 
     } catch (error) {
         res.status(500).json({ message: 'Gagal menyelesaikan pesanan', error: error.message });
+    }
+};
+
+
+// User get history order
+// GET /api/orders/historyOrder
+
+exports.getHistoryOrder = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const orders = await Order.find({
+            user: userId,
+            status: 'completed'
+        })
+            .populate('items.product', 'name price images') // Ambil info produk
+            .sort({ createdAt: -1 })
+            .lean();
+        const userReviews = await Review.find({ user: userId }).select('product');
+        const reviewedProductIds = userReviews.map(r => r.product.toString());
+        const historyData = orders.map(order => {
+            const itemsWithReviewStatus = order.items.map(item => {
+                const isReviewed = item.product ? reviewedProductIds.includes(item.product._id.toString()) : false;
+
+                return {
+                    ...item,
+                    isReviewed: isReviewed
+                };
+            });
+
+            return {
+                ...order,
+                items: itemsWithReviewStatus
+            };
+        });
+
+        res.status(200).json({
+            message: 'Riwayat pembelian selesai',
+            count: historyData.length,
+            data: historyData
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Gagal mengambil riwayat', error: error.message });
     }
 };
