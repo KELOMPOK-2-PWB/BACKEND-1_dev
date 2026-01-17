@@ -51,6 +51,11 @@ const ProductSchema = new mongoose.Schema({
     average: { type: Number, default: 0 },
     count: { type: Number, default: 0 },
   },
+  numReviews: {
+    type: Number,
+    required: true,
+    default: 0
+  },
   images: [String],
 
     isDropItem: {
@@ -107,6 +112,14 @@ ProductSchema.pre('validate', function(next) {
     this.invalidate('dropEnd', 'Waktu selesai drop barang tidak boleh sebelum waktu mulai barang di drop');
   }
   next();
+});
+
+// review barang
+ProductSchema.virtual('reviews', {
+  ref: 'Review',
+  localField: '_id',
+  foreignField: 'product',
+  justOne: false
 });
 
 
